@@ -203,9 +203,10 @@ Following the shape of the zbotic guide, but the NixOS-native way:
   `example/radio/README.md` for the radio-specific instructions. Includes base-image build/flash/first-boot
   steps (WiFi/SSH setup via `secrets.nix`).
 - **`example/radio/README.md`:** what it is, why it's split out (reusable module now, easy to extract into
-  its own repo later), the two workloads (USB DAC vs Bluetooth speaker) and which file provides which,
-  build/flash commands for each `nixosConfigurations` output, station playlist configuration, and the
-  manual `bluetoothctl` pairing steps for the Bluetooth variant.
+  its own repo later), how `module.nix` (MPD + autoplay) and `bluetooth.nix` (pairing/reconnect + audio
+  output) fit together, the build/flash command for `nixosConfigurations.rpi-zero-w-radio`, how to set the
+  station stream URL, and the one-time manual `bluetoothctl` pairing steps (with a note that reconnect on
+  every subsequent boot is automatic).
 - **Credit sources** explicitly in both READMEs (a "Sources / credits" section), since this plan leans
   directly on prior art:
   - [NixOS Wiki — NixOS on ARM/Raspberry Pi](https://wiki.nixos.org/wiki/NixOS_on_ARM/Raspberry_Pi) —
