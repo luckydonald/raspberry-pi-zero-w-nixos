@@ -205,9 +205,9 @@ Following the shape of the zbotic guide, but the NixOS-native way:
 
 ## Build & flash
 
-1. Base image only: `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage`.
-   Radio variants: swap in `.rpi-zero-w-radio-usb` or `.rpi-zero-w-radio-bluetooth`. Expect a long first
-   build regardless of which — no binary cache for this architecture.
+1. `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage` — the Part 1 deliverable.
+   (`.rpi-zero-w-radio` builds the Part 2 scaffold the same way once it exists.) Expect a long first
+   build — no binary cache for this architecture.
 2. Decompress and write: `zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress`
    (confirm the correct device before writing).
 3. Boot the Pi, wait for it to join WiFi, find its address (router DHCP lease list or `avahi`/mDNS if
@@ -215,15 +215,16 @@ Following the shape of the zbotic guide, but the NixOS-native way:
 
 ## Verification
 
-- Confirm each image variant builds successfully end-to-end via the `nix build` commands above.
-- Boot the physical Pi Zero W from the flashed base-image card and confirm it associates to WiFi and
-  becomes SSH-reachable — this is the actual pass/fail signal, there's no way to verify armv6l boot
-  behavior without the real hardware.
+This plan's pass/fail bar is Part 1 only — the bare NixOS boot. Part 2 (radio) is scaffolded so it's
+ready to iterate on next, not something this round needs working end-to-end.
+
+- Confirm the base image builds successfully end-to-end via the `nix build` command above.
+- Boot the physical Pi Zero W from the flashed card and confirm it associates to WiFi and becomes
+  SSH-reachable — this is the actual pass/fail signal, there's no way to verify armv6l boot behavior
+  without the real hardware.
 - If I2C/SPI don't appear as `/dev/i2c-*`/`/dev/spidev*` after boot, note it as a known follow-up rather
   than blocking on it, per the unresolved report in the community thread.
-- USB DAC radio: run `aplay -l` over SSH to find the real USB audio device index, adjust
-  `usb-audio.nix`'s `audio_output` device if it doesn't match the placeholder `hw:1,0`, then
-  `mpc load <station>` / `mpc play` and confirm audio comes out of the attached speakers.
-- Bluetooth radio: pair the speaker via `bluetoothctl` per the README, confirm `bluealsa-aplay -L` (or
-  equivalent) lists the paired device as an ALSA sink, update `bluetooth-speaker.nix`'s device MAC if
-  needed, then `mpc play` and confirm audio comes out of the Bluetooth speaker.
+- Radio (Part 2, best-effort): if there's time/hardware on hand, also try `nix build`-ing
+  `rpi-zero-w-radio`, pair a Bluetooth speaker via `bluetoothctl` per the `example/radio/README.md`
+  instructions, confirm `bluealsa-aplay -L` (or equivalent) lists it as an ALSA sink, then `mpc play` and
+  confirm audio comes out of the speaker — but a rough edge here shouldn't block calling Part 1 done.
