@@ -82,3 +82,9 @@ The readme should also include how to run this, etc. Think of the radio as a `./
 
 ❯ No, the first part is "get nixos on that old raspberry zero 1 hw", the second part is the full radio with bluetooth and such.
 
+❯ Part two is just as well in scope, in the end the products are
+1. a reusable OS base image (definition) or similar and
+2. the actual working radio stream player, which just upon boot starts playing the configured stream URL.
+
+Both need to be completed.
+
