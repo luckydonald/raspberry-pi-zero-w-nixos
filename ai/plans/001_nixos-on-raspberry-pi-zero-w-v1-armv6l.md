@@ -48,9 +48,18 @@ built specifically for this exact device, though 4 years old, which matters for 
 - **First workload:** a headless always-on internet radio player (MPD-based, following the shape of the
   [zbotic guide](https://zbotic.in/blogs/raspberry-pi-internet-radio-build-an-always-on-music-player/)
   the user linked, but via NixOS's built-in `services.mpd` module instead of `apt install`/manual
-  `mpd.conf` editing). GPIO/I2C/SPI interfaces are enabled up front (via device tree overlays in
-  `config.txt`) even though the radio doesn't need them, so a later display/buttons upgrade (the guide's
-  "Option 2" build) doesn't require a rebuild from scratch.
+  `mpd.conf` editing), playing out over a **USB audio adapter** first.
+- **Second workload:** the same radio player, but output over the Pi Zero W's **onboard Bluetooth**
+  (BCM43438 combo chip) to a Bluetooth speaker instead of a wired USB DAC.
+- GPIO/I2C/SPI interfaces are enabled up front in the base config (via device tree overlays) even though
+  the radio doesn't need them, so a later display/buttons upgrade (the guide's "Option 2" build) doesn't
+  require a rebuild from scratch.
+- **Reusability:** the base NixOS image (boot/kernel/firmware/WiFi/SSH) must stay independent of the
+  radio project — the radio lives as a self-contained example under `example/radio/`, imported as an
+  optional extra module rather than baked into `hosts/rpi-zero-w/configuration.nix`. The user is
+  considering splitting this into its own repo later; keeping it in one repo for now is explicitly for
+  faster iteration/validation, but the module boundary should already make that future split easy (no
+  radio-specific bits leaking into the base host config).
 - **Config style:** flake-based (user's first time with flakes, so the plan keeps the flake itself small
   and legible).
 - **Secrets:** not sops-nix/agenix — a plain **gitignored `.nix` file** imported by the flake, holding the
