@@ -80,3 +80,5 @@ The first implementation would be an zero to run a web radion player, followigh 
 The whole radio thingy should be separate from the base image build, so this is reusable later. Credit the sources you used in the readme.
 The readme should also include how to run this, etc. Think of the radio as a `./example/radio/` subproject with it's own readme and such. Probably I want to split that into two repos at some point, but for now doing it together means much quicker to validate results.
 
+❯ No, the first part is "get nixos on that old raspberry zero 1 hw", the second part is the full radio with bluetooth and such.
+
