@@ -120,3 +120,23 @@ Both need to be completed.
 
 ❯ It's installed via `curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install` now.
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Memory is already tight on this machine (2.9GB free, swap full). Want me to start the real cross-build now in the background anyway, or hold off?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Start build?** (1/1) <kbd>Single Select</kbd><br>
+>> Memory is already tight on this machine (2.9GB free, swap full). Want me to start the real cross-build now in the background anyway, or hold off?
+> - [x] 1\. Start it in the background now (Recommended)
+>   - _Kick off the base image build (nixosConfigurations.rpi-zero-w) now, run_in_background, and report back when it finishes or hits an error. Eval already passed, so this is the real test of whether it actually builds._
+> - [ ] 2\. Hold off, I'll build it myself later
+>   - _Don't start a long build here; you'll run `nix build` yourself when ready, possibly on a different/less memory-constrained machine._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
