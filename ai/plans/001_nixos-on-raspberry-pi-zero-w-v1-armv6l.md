@@ -99,12 +99,13 @@ ignore conventions near the existing `.env` entries — follow that pattern).
   (`["ext4" "mmc_block"]`) to keep the initrd build small — a trick from the reference repo that avoids
   pulling in unrelated driver builds on this slow-to-build target.
 - `hardware.enableRedistributableFirmware = false;` + `hardware.firmware = [ pkgs.raspberrypiWirelessFirmware ];`
-- Enable I2C/SPI via Raspberry Pi device tree overlay options (`hardware.deviceTree` /
-  `boot.loader.raspberryPi.firmwareConfig` `dtparam=i2c_arm=on,spi=on`, or `hardware.i2c.enable = true`
-  depending on what the current module exposes) — enabled now, unused until a hardware project needs it.
-  Flag to the user during implementation if `/dev/i2c-*` doesn't appear (a documented unresolved rough
-  edge for this board in the NixOS Discourse thread) — treat as a known possible follow-up, not a blocker
-  for getting the box booting and SSH-reachable.
+- Enable I2C/SPI via `hardware.deviceTree` overlays (`dtparam=i2c_arm=on,spi=on` equivalents) rather than
+  a `config.txt` `dtoverlay=` line, since with `boot.loader.raspberryPi` gone there's no NixOS-managed
+  `firmwareConfig` option writing to `config.txt` anymore — `hardware.deviceTree` is the mechanism that
+  still applies with `generic-extlinux-compatible`. Enabled now, unused until a hardware project needs
+  it. Flag to the user during implementation if `/dev/i2c-*` doesn't appear (a documented unresolved
+  rough edge for this board in the NixOS Discourse thread) — treat as a known possible follow-up, not a
+  blocker for getting the box booting and SSH-reachable.
 - Networking: `networking.wireless.enable = true;` (wpa_supplicant, since NetworkManager is heavier and
   not needed for a single always-on WiFi headless box) configured from `secrets.nix`'s
   `wifi.ssid`/`wifi.psk` via `networking.wireless.networks.<ssid>.psk`.
