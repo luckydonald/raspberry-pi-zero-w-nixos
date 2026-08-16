@@ -226,3 +226,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w.config.system.build.sdImage" -L
 > - [Answer (`3002` chars, `2.93 KB`)](output/agents/016.bm8grjfud/result.md)
 > - [Raw log (`9414` chars, `9.19 KB`)](/tmp/claude-1000/-home-user-git-luckydonald-raspberry-pi-zero-w-nixos/8b4093ff-6761-4498-b04a-1cc64e2d3bdd/tasks/bm8grjfud.output)
 
+❯ Can I cache those already build parts myself? Possibly via github actions?
+
