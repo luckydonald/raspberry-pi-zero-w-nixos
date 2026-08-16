@@ -39,8 +39,8 @@ built specifically for this exact device, though 4 years old, which matters for 
   `env.NIX_CFLAGS_COMPILE`). Kept relevant only if something in the closure needs them — the plan below
   keeps `environment.systemPackages` minimal specifically to reduce the chance of hitting these.
 - **No analog audio out:** the original Pi Zero/Zero W board has no 3.5mm jack (unlike later Pis) — only
-  PWM audio pads, which are unreliable/lo-fi. The internet radio project (below) needs a USB audio
-  adapter for real speaker output.
+  PWM audio pads, which are unreliable/lo-fi. This is part of why the Part 2 radio project targets a
+  Bluetooth speaker for audio out rather than a wired connection.
 
 ## Decisions locked in with the user
 
