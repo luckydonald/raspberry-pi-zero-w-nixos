@@ -90,3 +90,27 @@ Both need to be completed.
 
 ❯ Is `hosts` the best word for it? Isn't it more like a device type/architecture/something? I'd understand `host` as a single machine and not a template for multiple.
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. What should the directory be called instead of hosts/rpi-zero-w/?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Directory name** (1/1) <kbd>Single Select</kbd><br>
+>> What should the directory be called instead of hosts/rpi-zero-w/?
+> - [ ] 1\. boards/rpi-zero-w/ (Recommended)
+>   - _Common NixOS-flake convention for a reusable hardware-board definition, as opposed to a specific named machine._
+> - [ ] 2\. profiles/rpi-zero-w/
+>   - _Emphasizes it's a composable base config profile rather than a single deployed instance._
+> - [x] 3\. devices/rpi-zero-w/
+>   - _Plain description of 'this is for this device type.'_
+> - [ ] 4\. Keep hosts/rpi-zero-w/
+>   - _Leave as-is despite the naming mismatch._
+> - [ ] 5\. _Type something._
+>
+> </details>
+>
+
