@@ -155,14 +155,20 @@ Following the shape of the zbotic guide, but the NixOS-native way:
   of the guide's `bind_to_address "any"`.
 - Station playlists as `.m3u` files under the MPD playlist directory (declaratively written via
   `environment.etc` or a `systemd.tmpfiles.rules` drop-in at activation, rather than the guide's
-  `sudo tee` at the shell) — ask the user for the actual station stream URLs they want when implementing,
-  the guide's BBC World Service example is just a placeholder.
-- Control: `pkgs.mpc-cli` in `environment.systemPackages` for `mpc play`/`mpc next` over SSH is enough
-  for a first cut; the guide's OLED/buttons/web-UI options are explicitly out of scope for this build per
-  the user's answer above, but the GPIO/I2C enablement already in the base `configuration.nix` leaves
-  room for that later without a rebuild-from-scratch.
-- Autostart: `services.mpd` is a systemd service already enabled by the module — no separate autostart
-  wiring needed (simpler than the guide's manual systemd unit for `mpd`/`cvlc`).
+  `sudo tee` at the shell) — ask the user for the actual station stream URL(s) they want when
+  implementing, the guide's BBC World Service example is just a placeholder.
+- Control: `pkgs.mpc-cli` in `environment.systemPackages` for manual `mpc play`/`mpc next` over SSH as a
+  debugging aid; the guide's OLED/buttons/web-UI options are explicitly out of scope per the user's
+  answer above, but the GPIO/I2C enablement already in the base `configuration.nix` leaves room for that
+  later without a rebuild-from-scratch.
+- **Autoplay on boot is a hard requirement, not optional:** `services.mpd` starting is not enough by
+  itself — add a `systemd.services.radio-autoplay` (`wantedBy = [ "multi-user.target" ]`,
+  `after = [ "mpd.service" "bluetooth-connect.service" ]` — see `bluetooth.nix` — `wants` on the same,
+  `ExecStart` running `mpc clear && mpc load <configured station> && mpc play` via `pkgs.mpc-cli`) so the
+  box starts playing the configured stream unattended, matching "plug it in and it plays" from the
+  zbotic guide's whole premise. Needs to tolerate MPD/Bluetooth not being ready yet on first boot
+  (`Restart=on-failure` with a short `RestartSec`, or an explicit wait-for-mpd-socket step) rather than
+  running once and giving up.
 - Does **not** set `services.mpd.extraConfig`'s `audio_output` itself — that's `bluetooth.nix`'s job, kept
   separate so the MPD core doesn't need to know or care how audio actually gets out.
 
