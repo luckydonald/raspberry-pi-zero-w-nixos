@@ -12,15 +12,24 @@ The critical constraint shaping every decision below: **nixpkgs' Hydra binary ca
 itself are impractical (too slow, too little RAM), so per the user's choice this will be built via true
 cross-compilation from their main machine, producing a flashable SD card image.
 
-Research confirms the concrete pieces needed (verified against the NixOS wiki, nixpkgs issues, and a
-working reference repo, [cyber-murmel/nixos-rpi-zero-w](https://github.com/cyber-murmel/nixos-rpi-zero-w),
-built specifically for this exact device):
+Research confirms the concrete pieces needed (verified against the NixOS wiki, the nixpkgs source tree,
+and a working reference repo, [cyber-murmel/nixos-rpi-zero-w](https://github.com/cyber-murmel/nixos-rpi-zero-w) —
+built specifically for this exact device, though 4 years old, which matters for the boot loader point below):
 
-- Boot uses the classic **`boot.loader.raspberryPi`** module (`version = 0`), *not* U-Boot/extlinux —
-  U-Boot-based generic-extlinux boot is for the 64-bit Pi 2/3/4/5 line; the original Zero/Pi1 boots the
-  RPi firmware bootloader directly into a kernel image.
-- Kernel package: `pkgs.linuxPackages_rpi0` (name to double check against current nixpkgs at
-  implementation time — kernel package naming has shifted before).
+- **Boot loader:** the reference repo (and the older wiki guidance) uses `boot.loader.raspberryPi`
+  (`version = 0`), which boots the RPi firmware straight into a kernel image with no U-Boot involved.
+  **That module is now deprecated** (nixpkgs PR #241534). The current correct approach — used by
+  nixpkgs' own `sd-image-aarch64.nix` module for the 64-bit Pis — is `boot.loader.grub.enable = false;`
+  + `boot.loader.generic-extlinux-compatible.enable = true;`, with the RPi firmware partition populated
+  by hand (`sdImage.populateFirmwareCommands`) to load **U-Boot** as `kernel.img`, which then reads the
+  `extlinux.conf` NixOS generates. U-Boot has a real target for this exact board:
+  `pkgs.ubootRaspberryPiZero` (`rpi_0_w_defconfig`, armv6l) — confirmed present in current nixpkgs
+  (`pkgs/misc/uboot/default.nix`). This is more manual wiring than the old repo's approach but is the
+  non-deprecated path, and reuses the same mechanism nixpkgs already ships for Pi3/4/5, just retargeted
+  at armv6l firmware (no `arm_64bit=1` line in `config.txt`, and `ubootRaspberryPiZero` instead of the
+  aarch64 variant).
+- Kernel package: `pkgs.linuxPackages_rpi0` (verify this attribute still exists in the pinned nixpkgs
+  revision at implementation time — kernel package naming has shifted before).
 - `hardware.enableRedistributableFirmware = false` with `pkgs.raspberrypiWirelessFirmware` added
   explicitly is a known-needed combo for WiFi to work at all on this board.
 - No `nixos-hardware` profile exists for the original Pi Zero (only Pi 2/3/4/5 are covered), so this
@@ -29,6 +38,9 @@ built specifically for this exact device):
   `llvmPackages_14` when something pulls in Clang) and a cmake atomic-linking issue (`-latomic` via
   `env.NIX_CFLAGS_COMPILE`). Kept relevant only if something in the closure needs them — the plan below
   keeps `environment.systemPackages` minimal specifically to reduce the chance of hitting these.
+- **No analog audio out:** the original Pi Zero/Zero W board has no 3.5mm jack (unlike later Pis) — only
+  PWM audio pads, which are unreliable/lo-fi. The internet radio project (below) needs a USB audio
+  adapter for real speaker output.
 
 ## Decisions locked in with the user
 
