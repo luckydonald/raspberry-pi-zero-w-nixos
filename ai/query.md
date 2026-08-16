@@ -88,3 +88,5 @@ The readme should also include how to run this, etc. Think of the radio as a `./
 
 Both need to be completed.
 
+❯ Is `hosts` the best word for it? Isn't it more like a device type/architecture/something? I'd understand `host` as a single machine and not a template for multiple.
+
