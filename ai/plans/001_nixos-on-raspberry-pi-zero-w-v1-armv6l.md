@@ -140,29 +140,52 @@ ignore conventions near the existing `.env` entries — follow that pattern).
   impractical on a 512MB single-core board with no cache, so prefer adding packages to the image and
   rebuilding/reflashing over installing on-device.
 
-## `hosts/rpi-zero-w/radio.nix` — first workload (internet radio)
+## `example/radio/module.nix` — shared radio core
 
-Following the shape of the zbotic guide, but the NixOS-native way:
+Following the shape of the zbotic guide, but the NixOS-native way, and independent of which audio output
+is used:
 
 - `services.mpd.enable = true;` with `services.mpd.musicDirectory`/`playlistDirectory` under
   `/var/lib/mpd` (module-managed, no manual `apt install`/`/etc/mpd.conf` editing needed).
 - `services.mpd.network.listenAddress = "any";` so `mpc`/an MPD client can reach it from the LAN, mirror
   of the guide's `bind_to_address "any"`.
-- ALSA output via `services.mpd.extraConfig`'s `audio_output { type "alsa"; device "hw:1,0"; }` pointing
-  at the USB audio adapter (device index depends on what's plugged in — confirm with `aplay -l` on first
-  boot rather than hardcoding blindly). No onboard analog audio out on this board (see Context).
-- `services.mpd.user`/group and add that user to `audio`; `hardware.pulseaudio.enable` not needed if
-  MPD talks to ALSA directly, matching the guide's basic (non-Bluetooth) setup.
 - Station playlists as `.m3u` files under the MPD playlist directory (declaratively written via
   `environment.etc` or a `systemd.tmpfiles.rules` drop-in at activation, rather than the guide's
   `sudo tee` at the shell) — ask the user for the actual station stream URLs they want when implementing,
   the guide's BBC World Service example is just a placeholder.
 - Control: `pkgs.mpc-cli` in `environment.systemPackages` for `mpc play`/`mpc next` over SSH is enough
   for a first cut; the guide's OLED/buttons/web-UI options are explicitly out of scope for this first
-  headless build per the user's answer above, but the GPIO/I2C enablement already in `configuration.nix`
-  leaves room for that later without a rebuild-from-scratch.
+  headless build per the user's answer above, but the GPIO/I2C enablement already in the base
+  `configuration.nix` leaves room for that later without a rebuild-from-scratch.
 - Autostart: `services.mpd` is a systemd service already enabled by the module — no separate autostart
   wiring needed (simpler than the guide's manual systemd unit for `mpd`/`cvlc`).
+- Does **not** set `services.mpd.extraConfig`'s `audio_output` itself — that's left to whichever of the
+  two output modules below is imported alongside it, so the core stays reusable across both.
+
+## `example/radio/usb-audio.nix` — workload 1 (USB DAC)
+
+- `services.mpd.extraConfig`'s `audio_output { type "alsa"; device "hw:1,0"; }` pointing at the USB audio
+  adapter (device index depends on what's plugged in — confirm with `aplay -l` on first boot rather than
+  hardcoding blindly). No onboard analog audio out on this board (see Context).
+- Add the `mpd` service user/group to `audio`; `hardware.pulseaudio.enable` not needed since MPD talks to
+  ALSA directly, matching the guide's basic (non-Bluetooth) setup.
+
+## `example/radio/bluetooth-speaker.nix` — workload 2 (onboard Bluetooth → BT speaker)
+
+- The Pi Zero W's BCM43438 combo chip exposes Bluetooth over UART, same as the Pi 3 — reuse the NixOS
+  wiki's documented `btattach` recipe (`systemd.services.btattach`, `ExecStart = "${pkgs.bluez}/bin/btattach -B /dev/ttyAMA0 -P bcm -S 3000000"`,
+  `after = [ "dev-ttyAMA0.device" ]`) since that's the known-working way to bring the UART-attached
+  controller up before `bluetooth.service` starts.
+- `hardware.bluetooth.enable = true;` for BlueZ.
+- Audio bridge: `pkgs.bluez-alsa` (BlueALSA) rather than PipeWire — PipeWire's Bluetooth support is the
+  more modern default on beefier boards, but BlueALSA is the lighter-weight, commonly recommended option
+  for a headless single-core/512MB board like this one. Runs as a small systemd service exposing the
+  paired speaker as an ALSA PCM device.
+- `services.mpd.extraConfig`'s `audio_output { type "alsa"; device "bluealsa:DEV=<speaker MAC>,PROFILE=a2dp"; }`
+  once the speaker's MAC is known.
+- Pairing is a one-time manual step over SSH (`bluetoothctl` → `scan on`, `pair <MAC>`, `trust <MAC>`) —
+  no way to automate first-time pairing without knowing the specific speaker, so the README documents the
+  `bluetoothctl` steps rather than the module trying to pre-declare a MAC address.
 
 ## Build & flash
 
