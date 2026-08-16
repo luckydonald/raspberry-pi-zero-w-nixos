@@ -163,3 +163,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w.config.system.build.sdImage" -L
 > - [Answer (`3002` chars, `2.94 KB`)](output/agents/011.b4et571yq/result.md)
 > - [Raw log (`18306036` chars, `17.5 MB`)](/tmp/claude-1000/-home-user-git-luckydonald-raspberry-pi-zero-w-nixos/8b4093ff-6761-4498-b04a-1cc64e2d3bdd/tasks/b4et571yq.output)
 
+❯ document your learnings.
+
