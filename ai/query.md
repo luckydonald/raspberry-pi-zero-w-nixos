@@ -285,3 +285,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdIma
 > - [Answer (`3002` chars, `2.93 KB`)](output/agents/021.bv0jciyc3/result.md)
 > - [Raw log (`143515` chars, `140 KB`)](/tmp/claude-1000/-home-user-git-luckydonald-raspberry-pi-zero-w-nixos/8b4093ff-6761-4498-b04a-1cc64e2d3bdd/tasks/bv0jciyc3.output)
 
+❯ it is set both on github and the local .env file (please don't read the password)
+
