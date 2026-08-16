@@ -45,9 +45,12 @@ built specifically for this exact device, though 4 years old, which matters for 
 ## Decisions locked in with the user
 
 - **Build strategy:** true cross-compilation (`nixpkgs.crossSystem`), not QEMU/binfmt emulation.
-- **Scope:** headless first deployment; GPIO/I2C/SPI interfaces enabled up front (via device tree
-  overlays in `config.txt`) even though nothing uses them yet, so future projects don't need a rebuild
-  from scratch.
+- **First workload:** a headless always-on internet radio player (MPD-based, following the shape of the
+  [zbotic guide](https://zbotic.in/blogs/raspberry-pi-internet-radio-build-an-always-on-music-player/)
+  the user linked, but via NixOS's built-in `services.mpd` module instead of `apt install`/manual
+  `mpd.conf` editing). GPIO/I2C/SPI interfaces are enabled up front (via device tree overlays in
+  `config.txt`) even though the radio doesn't need them, so a later display/buttons upgrade (the guide's
+  "Option 2" build) doesn't require a rebuild from scratch.
 - **Config style:** flake-based (user's first time with flakes, so the plan keeps the flake itself small
   and legible).
 - **Secrets:** not sops-nix/agenix — a plain **gitignored `.nix` file** imported by the flake, holding the
