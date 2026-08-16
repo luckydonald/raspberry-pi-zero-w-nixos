@@ -222,26 +222,28 @@ Following the shape of the zbotic guide, but the NixOS-native way:
 
 ## Build & flash
 
-1. `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage` — the Part 1 deliverable.
-   (`.rpi-zero-w-radio` builds the Part 2 scaffold the same way once it exists.) Expect a long first
-   build — no binary cache for this architecture.
+1. `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage` for the Part 1 base image, or
+   `nix build .#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdImage` for the Part 2 radio
+   appliance. Expect a long first build for each — no binary cache for this architecture.
 2. Decompress and write: `zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress`
    (confirm the correct device before writing).
 3. Boot the Pi, wait for it to join WiFi, find its address (router DHCP lease list or `avahi`/mDNS if
    enabled), `ssh` in with the key from `secrets.nix`.
+4. Radio image only, one-time: pair the Bluetooth speaker over SSH via `bluetoothctl` per
+   `example/radio/README.md` before expecting audio out.
 
 ## Verification
 
-This plan's pass/fail bar is Part 1 only — the bare NixOS boot. Part 2 (radio) is scaffolded so it's
-ready to iterate on next, not something this round needs working end-to-end.
+Both parts are required deliverables — Part 2 is not "if there's time."
 
-- Confirm the base image builds successfully end-to-end via the `nix build` command above.
-- Boot the physical Pi Zero W from the flashed card and confirm it associates to WiFi and becomes
-  SSH-reachable — this is the actual pass/fail signal, there's no way to verify armv6l boot behavior
-  without the real hardware.
-- If I2C/SPI don't appear as `/dev/i2c-*`/`/dev/spidev*` after boot, note it as a known follow-up rather
-  than blocking on it, per the unresolved report in the community thread.
-- Radio (Part 2, best-effort): if there's time/hardware on hand, also try `nix build`-ing
-  `rpi-zero-w-radio`, pair a Bluetooth speaker via `bluetoothctl` per the `example/radio/README.md`
-  instructions, confirm `bluealsa-aplay -L` (or equivalent) lists it as an ALSA sink, then `mpc play` and
-  confirm audio comes out of the speaker — but a rough edge here shouldn't block calling Part 1 done.
+- **Part 1:** confirm the base image builds via the `nix build` command above; boot the physical Pi Zero
+  W from the flashed card and confirm it associates to WiFi and becomes SSH-reachable. This is the actual
+  pass/fail signal — there's no way to verify armv6l boot behavior without the real hardware. If I2C/SPI
+  don't appear as `/dev/i2c-*`/`/dev/spidev*` after boot, note it as a known follow-up rather than
+  blocking on it, per the unresolved report in the community thread — it doesn't affect Part 1's actual
+  requirements (boot + SSH).
+- **Part 2:** confirm the radio image builds; boot it, pair the Bluetooth speaker once via `bluetoothctl`,
+  power-cycle the Pi, and confirm that — with zero manual intervention after the pairing step — it
+  reconnects to the speaker and starts playing the configured stream automatically. Check
+  `systemctl status bluetooth-connect radio-autoplay mpd` over SSH if it doesn't. This unattended-restart
+  behavior, not just "audio plays after I run `mpc play` by hand," is the actual bar for Part 2 being done.
