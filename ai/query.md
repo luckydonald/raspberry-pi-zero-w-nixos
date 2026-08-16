@@ -228,3 +228,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w.config.system.build.sdImage" -L
 
 ❯ Can I cache those already build parts myself? Possibly via github actions?
 
+❯ I set up a cache at cachix.org, bucket `luckydonald-rpi-zero-w`. I think weekly build action on github would be neat, it checking id the cachix needs anything build and then doing that, immediatly uploading produced results, to survive timeout kills gracefully.
+
