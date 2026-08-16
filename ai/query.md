@@ -118,3 +118,5 @@ Both need to be completed.
 
 ❯ But I don't want to change this version to run nixOS, only compile that shizzle.
 
+❯ It's installed via `curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install` now.
+
