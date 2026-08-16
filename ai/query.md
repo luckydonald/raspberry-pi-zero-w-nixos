@@ -165,3 +165,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w.config.system.build.sdImage" -L
 
 ❯ document your learnings.
 
+❯ do not fold yet, I'll/we do it later
+
