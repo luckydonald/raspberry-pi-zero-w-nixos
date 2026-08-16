@@ -45,18 +45,22 @@ built specifically for this exact device, though 4 years old, which matters for 
 ## Decisions locked in with the user
 
 - **Build strategy:** true cross-compilation (`nixpkgs.crossSystem`), not QEMU/binfmt emulation.
-- **Part 1 (this plan's actual scope):** just get NixOS booting on the original Pi Zero W hardware —
-  boot loader, kernel, firmware, WiFi, SSH. No radio, no audio, nothing app-specific. That's
-  `hosts/rpi-zero-w/configuration.nix` and is the thing this plan builds and verifies end-to-end.
-  GPIO/I2C/SPI interfaces are enabled up front (via device tree overlays) even though nothing needs them
-  yet, so later projects (radio or otherwise) don't require a rebuild from scratch.
-- **Part 2 (follow-up project, scaffolded now but not the focus of verification):** a headless
-  always-on internet radio player (MPD-based, following the shape of the
-  [zbotic guide](https://zbotic.in/blogs/raspberry-pi-internet-radio-build-an-always-on-music-player/)
-  the user linked, but via NixOS's built-in `services.mpd` module instead of `apt install`/manual
-  `mpd.conf` editing), outputting audio over the Pi Zero W's **onboard Bluetooth** (BCM43438 combo chip)
-  to a Bluetooth speaker — not a USB DAC, since the board's onboard radio already does WiFi *and*
-  Bluetooth and the user wants to use that directly.
+- **Two equally-in-scope deliverables:**
+  1. **Part 1 — reusable OS base image:** NixOS booting on the original Pi Zero W hardware — boot
+     loader, kernel, firmware, WiFi, SSH, nothing app-specific. That's
+     `hosts/rpi-zero-w/configuration.nix`, meant to stand alone as a base other projects (not just the
+     radio) can build on. GPIO/I2C/SPI interfaces are enabled up front (via device tree overlays) even
+     though nothing needs them yet, so later projects don't require a rebuild from scratch.
+  2. **Part 2 — the actual working radio player:** on boot, with no manual intervention, the Pi
+     connects to WiFi, pairs/reconnects to a Bluetooth speaker, and starts playing a pre-configured
+     stream URL — a real always-on internet radio appliance, not just an MPD daemon standing by for a
+     `mpc play`. Built the NixOS-native way, shaped after the
+     [zbotic guide](https://zbotic.in/blogs/raspberry-pi-internet-radio-build-an-always-on-music-player/)
+     the user linked, over the Pi Zero W's **onboard Bluetooth** (BCM43438 combo chip) to a Bluetooth
+     speaker rather than a USB DAC, since the onboard radio already does WiFi *and* Bluetooth and the
+     user wants to use that directly.
+
+  Both parts need to be completed and verified, not just Part 1 with Part 2 scaffolded for later.
 - **Reusability:** the base NixOS image (Part 1) must stay independent of the radio project (Part 2) —
   the radio lives as a self-contained example under `example/radio/`, imported as an optional extra
   module rather than baked into `hosts/rpi-zero-w/configuration.nix`. The user is considering splitting
