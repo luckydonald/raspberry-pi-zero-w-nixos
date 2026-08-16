@@ -289,3 +289,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdIma
 
 ❯ how do I get the `cachix` cli?
 
+❯ source .env && cachix authtoken
+
