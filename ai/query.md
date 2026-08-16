@@ -15,3 +15,5 @@
 
 #### Previous user prompts:
 
+❯ /plan I want to have a nixos install for my raspberry pi zero (v1) w.
+
