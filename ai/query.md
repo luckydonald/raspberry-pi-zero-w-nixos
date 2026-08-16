@@ -76,3 +76,7 @@
 ❯ You can also reference @ai/references/https/nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi/_.md and https://github.com/cyber-murmel/nixos-rpi-zero-w (4 years old though) if that helps.
 The first implementation would be an zero to run a web radion player, followigh roughly @ai/references/https/zbotic.in/raspberry-pi-internet-radio-build-an-always-on-music-player/_.md
 
+❯ I want the secondary project to use the on-board bluetooth to connect to an bluetooth speaker.
+The whole radio thingy should be separate from the base image build, so this is reusable later. Credit the sources you used in the readme.
+The readme should also include how to run this, etc. Think of the radio as a `./example/radio/` subproject with it's own readme and such. Probably I want to split that into two repos at some point, but for now doing it together means much quicker to validate results.
+
