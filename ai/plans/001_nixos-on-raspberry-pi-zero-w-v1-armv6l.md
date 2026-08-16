@@ -70,13 +70,23 @@ built specifically for this exact device, though 4 years old, which matters for 
 ## File layout
 
 ```
-flake.nix                              # inputs (nixpkgs), nixosConfigurations.rpi-zero-w
+README.md                              # repo overview, points at example/radio/README.md, credits sources
+flake.nix                              # inputs (nixpkgs), nixosConfigurations.{rpi-zero-w, rpi-zero-w-radio}
 hosts/rpi-zero-w/
-  configuration.nix                    # boot loader, kernel, firmware, networking, ssh, users
-  radio.nix                            # services.mpd + station playlists (first workload)
+  configuration.nix                    # base: boot loader, kernel, firmware, networking, ssh, users, GPIO/I2C
   secrets.nix.example                  # tracked template: { wifi = { ssid, psk }; sshAuthorizedKeys = [...]; }
   secrets.nix                          # gitignored, real values, imported by configuration.nix
+example/radio/
+  README.md                            # what this is, sources/credits, how to build+flash+run, station config
+  module.nix                           # services.mpd core (audio-output-agnostic), station playlists
+  usb-audio.nix                        # ALSA output to USB DAC (workload 1)
+  bluetooth-speaker.nix                # onboard BT -> A2DP speaker output (workload 2)
 ```
+
+`example/radio/module.nix` takes the actual output wiring as a separate concern (`usb-audio.nix` vs
+`bluetooth-speaker.nix`) so the flake can offer either as its own `nixosConfigurations` entry without the
+two output paths fighting over the same MPD `audio_output` config, and so a future split-out repo only
+needs to move the `example/radio/` directory.
 
 Add `hosts/rpi-zero-w/secrets.nix` to `.gitignore` (the repo already has broad `.env`/`*secrets*`-style
 ignore conventions near the existing `.env` entries — follow that pattern).
@@ -85,11 +95,16 @@ ignore conventions near the existing `.env` entries — follow that pattern).
 
 - Single input: `nixpkgs` (pin to `nixos-unstable` or a recent stable release — recommend unstable since
   armv6l fixes land there first and this is already an unsupported-tier build).
-- `nixosConfigurations.rpi-zero-w = nixpkgs.lib.nixosSystem { system = "x86_64-linux"; modules = [ ... hosts/rpi-zero-w/configuration.nix ]; }`
+- Base output: `nixosConfigurations.rpi-zero-w = nixpkgs.lib.nixosSystem { system = "x86_64-linux"; modules = [ ... hosts/rpi-zero-w/configuration.nix ]; }`
   with `nixpkgs.crossSystem.system = "armv6l-linux"` set inside a module, so the build host stays
-  `x86_64-linux` (their main machine) while the produced system targets armv6l.
-- Expose the SD image as a flake output so building it is one command:
-  `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage`
+  `x86_64-linux` (their main machine) while the produced system targets armv6l. This is the "just the OS,
+  nothing app-specific" image.
+- Radio outputs: `nixosConfigurations.rpi-zero-w-radio-usb` and `nixosConfigurations.rpi-zero-w-radio-bluetooth`,
+  each `hosts/rpi-zero-w/configuration.nix` + `example/radio/module.nix` + the matching output-wiring
+  module (`usb-audio.nix` or `bluetooth-speaker.nix`). Keeps the base config importable on its own while
+  making both radio variants one `nix build` away.
+- Expose the SD image as a flake output so building any of them is one command, e.g.:
+  `nix build .#nixosConfigurations.rpi-zero-w-radio-bluetooth.config.system.build.sdImage`
 
 ## `hosts/rpi-zero-w/configuration.nix`
 
