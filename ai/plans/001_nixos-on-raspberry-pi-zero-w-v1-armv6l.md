@@ -187,10 +187,35 @@ is used:
   no way to automate first-time pairing without knowing the specific speaker, so the README documents the
   `bluetoothctl` steps rather than the module trying to pre-declare a MAC address.
 
+## READMEs and credits
+
+- **Root `README.md`:** short repo overview — what this is (NixOS on an original Pi Zero W), the
+  cross-compilation/no-binary-cache constraint, how `hosts/rpi-zero-w/` (base image) relates to
+  `example/radio/` (optional add-on, self-contained on purpose), and a pointer into
+  `example/radio/README.md` for the radio-specific instructions. Includes base-image build/flash/first-boot
+  steps (WiFi/SSH setup via `secrets.nix`).
+- **`example/radio/README.md`:** what it is, why it's split out (reusable module now, easy to extract into
+  its own repo later), the two workloads (USB DAC vs Bluetooth speaker) and which file provides which,
+  build/flash commands for each `nixosConfigurations` output, station playlist configuration, and the
+  manual `bluetoothctl` pairing steps for the Bluetooth variant.
+- **Credit sources** explicitly in both READMEs (a "Sources / credits" section), since this plan leans
+  directly on prior art:
+  - [NixOS Wiki — NixOS on ARM/Raspberry Pi](https://wiki.nixos.org/wiki/NixOS_on_ARM/Raspberry_Pi) —
+    boot-process background, the `btattach`/Bluetooth recipe, device tree overlay guidance.
+  - [cyber-murmel/nixos-rpi-zero-w](https://github.com/cyber-murmel/nixos-rpi-zero-w) — original working
+    reference for this exact board (predates the `boot.loader.raspberryPi` deprecation, adapted here).
+  - [NixOS Discourse — "NixOS on raspberry pi zero w"](https://discourse.nixos.org/t/nixos-on-raspberry-pi-zero-w/38018) —
+    armv6 cross-compile pitfalls (`llvmPackages_14`, `-latomic`), unresolved I2C rough edge.
+  - [nixpkgs PR #241534](https://github.com/NixOS/nixpkgs/pull/241534) — deprecation of
+    `boot.loader.raspberryPi`, rationale for the `generic-extlinux-compatible` + U-Boot replacement.
+  - [zbotic — Raspberry Pi Internet Radio: Build an Always-On Music Player](https://zbotic.in/blogs/raspberry-pi-internet-radio-build-an-always-on-music-player/) —
+    shape of the MPD-based radio project this reimplements declaratively.
+
 ## Build & flash
 
-1. `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage` on the dev machine (expect a
-   long first build — no binary cache for this architecture).
+1. Base image only: `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage`.
+   Radio variants: swap in `.rpi-zero-w-radio-usb` or `.rpi-zero-w-radio-bluetooth`. Expect a long first
+   build regardless of which — no binary cache for this architecture.
 2. Decompress and write: `zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress`
    (confirm the correct device before writing).
 3. Boot the Pi, wait for it to join WiFi, find its address (router DHCP lease list or `avahi`/mDNS if
@@ -198,12 +223,15 @@ is used:
 
 ## Verification
 
-- Confirm the image builds successfully end-to-end via the `nix build` command above.
-- Boot the physical Pi Zero W from the flashed card and confirm it associates to WiFi and becomes
-  SSH-reachable — this is the actual pass/fail signal, there's no way to verify armv6l boot behavior
-  without the real hardware.
+- Confirm each image variant builds successfully end-to-end via the `nix build` commands above.
+- Boot the physical Pi Zero W from the flashed base-image card and confirm it associates to WiFi and
+  becomes SSH-reachable — this is the actual pass/fail signal, there's no way to verify armv6l boot
+  behavior without the real hardware.
 - If I2C/SPI don't appear as `/dev/i2c-*`/`/dev/spidev*` after boot, note it as a known follow-up rather
   than blocking on it, per the unresolved report in the community thread.
-- Confirm the actual radio playback signal: run `aplay -l` over SSH to find the real USB audio device
-  index, adjust `radio.nix`'s `audio_output` device if it doesn't match the placeholder `hw:1,0`, then
+- USB DAC radio: run `aplay -l` over SSH to find the real USB audio device index, adjust
+  `usb-audio.nix`'s `audio_output` device if it doesn't match the placeholder `hw:1,0`, then
   `mpc load <station>` / `mpc play` and confirm audio comes out of the attached speakers.
+- Bluetooth radio: pair the speaker via `bluetoothctl` per the README, confirm `bluealsa-aplay -L` (or
+  equivalent) lists the paired device as an ALSA sink, update `bluetooth-speaker.nix`'s device MAC if
+  needed, then `mpc play` and confirm audio comes out of the Bluetooth speaker.
