@@ -64,6 +64,7 @@ built specifically for this exact device, though 4 years old, which matters for 
 flake.nix                              # inputs (nixpkgs), nixosConfigurations.rpi-zero-w
 hosts/rpi-zero-w/
   configuration.nix                    # boot loader, kernel, firmware, networking, ssh, users
+  radio.nix                            # services.mpd + station playlists (first workload)
   secrets.nix.example                  # tracked template: { wifi = { ssid, psk }; sshAuthorizedKeys = [...]; }
   secrets.nix                          # gitignored, real values, imported by configuration.nix
 ```
