@@ -116,3 +116,5 @@ Both need to be completed.
 
 ❯ How can I install nix executable?
 
+❯ But I don't want to change this version to run nixOS, only compile that shizzle.
+
