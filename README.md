@@ -43,9 +43,15 @@ personal/single-device repo — nothing sensitive touches git, and it's still ju
 ## Build & flash the base image
 
 ```sh
-nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage
+nix build "path:.#nixosConfigurations.rpi-zero-w.config.system.build.sdImage"
 zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress
 ```
+
+The `path:` prefix matters: Nix flakes only see git-*tracked* files by default, and
+`secrets.nix` is deliberately gitignored (see above) — `path:` reads the whole directory as-is
+instead, so your real WiFi/SSH values actually make it into the build. Plain `nix build .#...`
+(no `path:`) silently falls back to the placeholder values in `secrets.nix.example` instead —
+useful for CI (see below), not what you want for a real image.
 
 Double-check `/dev/sdX` is actually the SD card before writing. Boot the Pi, wait for it to join
 WiFi, find its address (router DHCP lease list, or `avahi`/mDNS if you have that set up), and:
@@ -55,6 +61,29 @@ ssh root@rpi-zero-w
 ```
 
 For the radio build instead, see [`example/radio/README.md`](example/radio/README.md).
+
+## Binary cache
+
+armv6l has no upstream Hydra cache, so every build here compiles a large chunk of nixpkgs from
+source — the first build especially can take hours. [`.github/workflows/nix-cache-warm.yml`](.github/workflows/nix-cache-warm.yml)
+cross-compiles both `nixosConfigurations` weekly (and on manual trigger) and pushes every store
+path it builds to a personal [Cachix](https://cachix.org) cache, `luckydonald-rpi-zero-w`, as
+soon as each one finishes — so a run that hits GitHub's job timeout still leaves useful progress
+behind for the next one to build on.
+
+That workflow deliberately runs `nix build .#...` **without** `path:`, so it only ever evaluates
+with the placeholder `secrets.nix.example` values (CI never has the real, gitignored
+`secrets.nix` at all) — meaning nothing from your real WiFi PSK or SSH keys can ever end up
+pushed to the cache, by construction, not by care taken in the workflow.
+
+To pull from the cache locally instead of rebuilding from source, add it as a substituter once:
+
+```sh
+nix run nixpkgs#cachix -- use luckydonald-rpi-zero-w
+```
+
+Repo maintainers: the workflow needs a `CACHIX_AUTH_TOKEN` Actions secret (a write token from the
+Cachix dashboard) to push — add it under repo Settings → Secrets and variables → Actions.
 
 ## Sources / credits
 

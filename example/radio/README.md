@@ -36,7 +36,7 @@ directly and rebuild:
 ## Build & flash
 
 ```sh
-nix build .#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdImage
+nix build "path:.#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdImage"
 zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress
 ```
 

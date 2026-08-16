@@ -1,0 +1,48 @@
+name: Nix cache warm (armv6l)
+
+# Cross-compiles the Pi Zero W images and pushes every built store path to Cachix as soon as it's
+# built (not batched at the end) — see cachix/cachix-action's post-build-hook wiring below. That
+# means a run that gets killed by the job timeout (armv6l has no upstream binary cache, so a full
+# closure build can run long) still leaves whatever finished so far in the cache; the next
+# scheduled run picks up where it left off, since `nix build` skips anything already substitutable
+# from Cachix.
+
+on:
+  schedule:
+    - cron: "17 3 * * 0" # weekly, Sunday 03:17 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        flake-output:
+          - rpi-zero-w
+          - rpi-zero-w-radio
+    runs-on: ubuntu-latest
+    # Below GitHub's own 360min hard cap on hosted runners, so the job gets a chance to be
+    # reported as timed-out (and any final in-flight push to finish) rather than hard-killed.
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: luckydonald-rpi-zero-w
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build ${{ matrix.flake-output }} sdImage
+        # continue-on-error: a build that doesn't finish inside the timeout is expected, not a
+        # real failure — everything it did finish is already pushed to Cachix via the
+        # post-build-hook cachix-action configured above, so partial progress isn't lost.
+        continue-on-error: true
+        run: |
+          nix build ".#nixosConfigurations.${{ matrix.flake-output }}.config.system.build.sdImage" \
+            --no-link -L

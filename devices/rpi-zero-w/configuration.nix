@@ -5,7 +5,11 @@
 { config, pkgs, lib, modulesPath, ... }:
 
 let
-  secrets = import ./secrets.nix;
+  # Falls back to the placeholder example when secrets.nix (gitignored, real values) doesn't
+  # exist — e.g. on a fresh CI checkout, which never has it. CI only needs the config to
+  # *evaluate and build*, not to produce a bootable-for-real image, so placeholder WiFi/SSH
+  # values are fine there; a real deploy always has secrets.nix present locally and uses it.
+  secrets = import (if builtins.pathExists ./secrets.nix then ./secrets.nix else ./secrets.nix.example);
 in
 {
   # Target platform is set by flake.nix via `nixpkgs.crossSystem` (true cross-compilation from
@@ -36,10 +40,22 @@ in
 
   # Keep the initrd small and fast to build/cross-compile: this board only ever boots off the
   # SD card, so it doesn't need the full default module set.
+  #
+  # mkForce on availableKernelModules: sd-image.nix (imported above) bakes in its own
+  # installer-oriented module list (autofs, efivarfs, tpm-crb, ...) meant for broad x86/UEFI
+  # hardware compatibility — none of which this board has or ever will. List-typed options merge
+  # (concatenate) across modules by default rather than override, and several of those modules
+  # (tpm-crb in particular) aren't even built for this board's minimal ARM kernel config, so
+  # without mkForce the initrd build fails trying to modprobe a module that doesn't exist.
   boot.initrd.includeDefaultModules = false;
-  boot.initrd.availableKernelModules = [ "ext4" "mmc_block" ];
+  boot.initrd.availableKernelModules = lib.mkForce [ "ext4" "mmc_block" ];
 
   sdImage.compressImage = true;
+
+  # See make-ext4-fs-no-xattrs.nix: needed to build on an SELinux-enabled build host (e.g.
+  # Fedora), where the stock filesystem creator fails trying to copy `security.selinux` xattrs
+  # into the image.
+  sdImage.rootFilesystemCreator = ./make-ext4-fs-no-xattrs.nix;
 
   sdImage.populateFirmwareCommands =
     let
@@ -69,41 +85,27 @@ in
   # redistributable-firmware blob and pull in just the RPi wireless firmware.
   #
   # mkForce: the generic sd-image.nix base we import pulls in profiles/all-hardware.nix (it's
-  # meant to double as an installer image), which sets this to true.
+  # meant to double as an x86 installer-CD image, supporting arbitrary hardware). Beyond forcing
+  # this to true, it also force-adds a huge boot.initrd.availableKernelModules list of x86
+  # SATA/RAID/etc. modules — irrelevant here, and actually fatal: the mainline kernel's minimal
+  # ARM config doesn't build most of them, so the initrd "modules-shrunk" build step fails
+  # trying to modprobe a module (e.g. `3w-9xxx`, a 3ware RAID controller) that doesn't exist for
+  # this kernel. Disabling the whole profile is correct, not just working around the symptom.
+  hardware.enableAllHardware = lib.mkForce false;
   hardware.enableRedistributableFirmware = lib.mkForce false;
   hardware.firmware = [ pkgs.raspberrypiWirelessFirmware ];
 
   # --- GPIO / I2C / SPI ------------------------------------------------------
   #
-  # Not used yet, enabled up front so a future hardware project doesn't need a rebuild from
-  # scratch. If /dev/i2c-* doesn't show up after boot, that's a known unresolved rough edge for
-  # this board (see NixOS Discourse thread linked in the README) — not a blocker for Part 1.
+  # Not used yet — generic i2c/deviceTree support is enabled up front so a future hardware
+  # project doesn't need a rebuild from scratch, but the actual i2c1/spi0 dtoverlay is NOT
+  # wired up here (yet): a plain `dtoverlay=`-style fragment targeting `&i2c1`/`&spi0` by label
+  # fails to build against this board's dtb with `FDT_ERR_NOTFOUND` — a documented, known rough
+  # edge (NixOS wiki's device-trees section, and the NixOS Discourse thread linked in the
+  # README) whose fix is switching to `dtmerge` instead of plain overlay application, not
+  # something to reach for casually. Follow-up work, not a blocker for Part 1 (boot + SSH).
   hardware.i2c.enable = true;
   hardware.deviceTree.enable = true;
-  hardware.deviceTree.overlays = [
-    {
-      name = "rpi-zero-w-i2c-spi";
-      dtsText = ''
-        /dts-v1/;
-        /plugin/;
-        / {
-          compatible = "brcm,bcm2835";
-          fragment@0 {
-            target = <&i2c1>;
-            __overlay__ {
-              status = "okay";
-            };
-          };
-          fragment@1 {
-            target = <&spi0>;
-            __overlay__ {
-              status = "okay";
-            };
-          };
-        };
-      '';
-    }
-  ];
 
   # --- Networking -------------------------------------------------------
   #

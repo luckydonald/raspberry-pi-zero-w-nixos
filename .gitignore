@@ -975,3 +975,5 @@ coverage/
 
 # automatically added unversioned files:
 devices/rpi-zero-w/secrets.nix
+result
+result-*
