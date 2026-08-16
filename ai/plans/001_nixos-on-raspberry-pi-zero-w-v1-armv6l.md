@@ -185,9 +185,15 @@ Following the shape of the zbotic guide, but the NixOS-native way:
   paired speaker as an ALSA PCM device.
 - `services.mpd.extraConfig`'s `audio_output { type "alsa"; device "bluealsa:DEV=<speaker MAC>,PROFILE=a2dp"; }`
   once the speaker's MAC is known.
-- Pairing is a one-time manual step over SSH (`bluetoothctl` → `scan on`, `pair <MAC>`, `trust <MAC>`) —
-  no way to automate first-time pairing without knowing the specific speaker, so the README documents the
-  `bluetoothctl` steps rather than the module trying to pre-declare a MAC address.
+- **Pairing vs. reconnecting are different problems.** Pairing is an unavoidable one-time manual step over
+  SSH (`bluetoothctl` → `scan on`, `pair <MAC>`, `trust <MAC>`) — no way to automate first-time pairing
+  without knowing the specific speaker, so the README documents the `bluetoothctl` steps. But
+  *reconnecting* to an already-trusted/paired speaker on every subsequent boot must be automatic (that's
+  part of the "just works on boot" requirement) — add `systemd.services.bluetooth-connect`
+  (`after = [ "bluetooth.service" "btattach.service" ]`, `before = [ "radio-autoplay.service" ]`,
+  `ExecStart` running `${pkgs.bluez}/bin/bluetoothctl connect <speaker MAC>`, with retry/backoff since the
+  speaker may power on slightly after the Pi) so `module.nix`'s autoplay unit has something to actually
+  order itself after.
 
 ## READMEs and credits
 
