@@ -48,7 +48,7 @@ built specifically for this exact device, though 4 years old, which matters for 
 - **Two equally-in-scope deliverables:**
   1. **Part 1 — reusable OS base image:** NixOS booting on the original Pi Zero W hardware — boot
      loader, kernel, firmware, WiFi, SSH, nothing app-specific. That's
-     `hosts/rpi-zero-w/configuration.nix`, meant to stand alone as a base other projects (not just the
+     `devices/rpi-zero-w/configuration.nix`, meant to stand alone as a base other projects (not just the
      radio) can build on. GPIO/I2C/SPI interfaces are enabled up front (via device tree overlays) even
      though nothing needs them yet, so later projects don't require a rebuild from scratch.
   2. **Part 2 — the actual working radio player:** on boot, with no manual intervention, the Pi
@@ -63,10 +63,10 @@ built specifically for this exact device, though 4 years old, which matters for 
   Both parts need to be completed and verified, not just Part 1 with Part 2 scaffolded for later.
 - **Reusability:** the base NixOS image (Part 1) must stay independent of the radio project (Part 2) —
   the radio lives as a self-contained example under `example/radio/`, imported as an optional extra
-  module rather than baked into `hosts/rpi-zero-w/configuration.nix`. The user is considering splitting
+  module rather than baked into `devices/rpi-zero-w/configuration.nix`. The user is considering splitting
   this into its own repo later; keeping it in one repo for now is explicitly for faster
   iteration/validation, but the module boundary should already make that future split easy (no
-  radio-specific bits leaking into the base host config).
+  radio-specific bits leaking into the base device config).
 - **Config style:** flake-based (user's first time with flakes, so the plan keeps the flake itself small
   and legible).
 - **Secrets:** not sops-nix/agenix — a plain **gitignored `.nix` file** imported by the flake, holding the
@@ -79,7 +79,7 @@ built specifically for this exact device, though 4 years old, which matters for 
 ```
 README.md                              # repo overview, points at example/radio/README.md, credits sources
 flake.nix                              # inputs (nixpkgs), nixosConfigurations.{rpi-zero-w, rpi-zero-w-radio}
-hosts/rpi-zero-w/
+devices/rpi-zero-w/
   configuration.nix                    # base: boot loader, kernel, firmware, networking, ssh, users, GPIO/I2C
   secrets.nix.example                  # tracked template: { wifi = { ssid, psk }; sshAuthorizedKeys = [...]; }
   secrets.nix                          # gitignored, real values, imported by configuration.nix
@@ -89,11 +89,11 @@ example/radio/
   bluetooth.nix                        # onboard BT (btattach) + BlueALSA -> mpd audio_output wiring
 ```
 
-`example/radio/` is only ever composed on top of the base `hosts/rpi-zero-w/configuration.nix` in the
+`example/radio/` is only ever composed on top of the base `devices/rpi-zero-w/configuration.nix` in the
 flake — it never modifies or duplicates anything from Part 1, so a future split-out repo only needs to
 move this one directory (plus depend on wherever the base config ends up).
 
-Add `hosts/rpi-zero-w/secrets.nix` to `.gitignore` (the repo already has broad `.env`/`*secrets*`-style
+Add `devices/rpi-zero-w/secrets.nix` to `.gitignore` (the repo already has broad `.env`/`*secrets*`-style
 ignore conventions near the existing `.env` entries — follow that pattern).
 
 ## `flake.nix`
@@ -101,17 +101,17 @@ ignore conventions near the existing `.env` entries — follow that pattern).
 - Single input: `nixpkgs` (pin to `nixos-unstable` or a recent stable release — recommend unstable since
   armv6l fixes land there first and this is already an unsupported-tier build).
 - Part 1 output — the reusable base image:
-  `nixosConfigurations.rpi-zero-w = nixpkgs.lib.nixosSystem { system = "x86_64-linux"; modules = [ ... hosts/rpi-zero-w/configuration.nix ]; }`
+  `nixosConfigurations.rpi-zero-w = nixpkgs.lib.nixosSystem { system = "x86_64-linux"; modules = [ ... devices/rpi-zero-w/configuration.nix ]; }`
   with `nixpkgs.crossSystem.system = "armv6l-linux"` set inside a module, so the build host stays
   `x86_64-linux` (their main machine) while the produced system targets armv6l. This is "just the OS,
   boots and is SSH-reachable" — nothing app-specific.
 - Part 2 output — the working radio appliance:
-  `nixosConfigurations.rpi-zero-w-radio`, composing `hosts/rpi-zero-w/configuration.nix` +
+  `nixosConfigurations.rpi-zero-w-radio`, composing `devices/rpi-zero-w/configuration.nix` +
   `example/radio/module.nix` + `example/radio/bluetooth.nix`.
 - Expose the SD image as a flake output so building either is one command, e.g.:
   `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage`
 
-## `hosts/rpi-zero-w/configuration.nix`
+## `devices/rpi-zero-w/configuration.nix`
 
 - `boot.loader.grub.enable = false; boot.loader.generic-extlinux-compatible.enable = true;` — the
   non-deprecated path (see Context above), *not* `boot.loader.raspberryPi`.
@@ -198,7 +198,7 @@ Following the shape of the zbotic guide, but the NixOS-native way:
 ## READMEs and credits
 
 - **Root `README.md`:** short repo overview — what this is (NixOS on an original Pi Zero W), the
-  cross-compilation/no-binary-cache constraint, how `hosts/rpi-zero-w/` (base image) relates to
+  cross-compilation/no-binary-cache constraint, how `devices/rpi-zero-w/` (base image) relates to
   `example/radio/` (optional add-on, self-contained on purpose), and a pointer into
   `example/radio/README.md` for the radio-specific instructions. Includes base-image build/flash/first-boot
   steps (WiFi/SSH setup via `secrets.nix`).
