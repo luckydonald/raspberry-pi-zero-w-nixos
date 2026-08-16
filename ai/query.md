@@ -291,3 +291,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdIma
 
 ❯ source .env && cachix authtoken
 
+❯ I ran `  echo "trusted-users = root user" | sudo tee -a /etc/nix/nix.conf && sudo pkill nix-daemon`
+
