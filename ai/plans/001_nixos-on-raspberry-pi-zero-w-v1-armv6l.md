@@ -141,10 +141,9 @@ ignore conventions near the existing `.env` entries — follow that pattern).
   impractical on a 512MB single-core board with no cache, so prefer adding packages to the image and
   rebuilding/reflashing over installing on-device.
 
-## `example/radio/module.nix` — shared radio core
+## `example/radio/module.nix` — MPD core
 
-Following the shape of the zbotic guide, but the NixOS-native way, and independent of which audio output
-is used:
+Following the shape of the zbotic guide, but the NixOS-native way:
 
 - `services.mpd.enable = true;` with `services.mpd.musicDirectory`/`playlistDirectory` under
   `/var/lib/mpd` (module-managed, no manual `apt install`/`/etc/mpd.conf` editing needed).
@@ -155,23 +154,15 @@ is used:
   `sudo tee` at the shell) — ask the user for the actual station stream URLs they want when implementing,
   the guide's BBC World Service example is just a placeholder.
 - Control: `pkgs.mpc-cli` in `environment.systemPackages` for `mpc play`/`mpc next` over SSH is enough
-  for a first cut; the guide's OLED/buttons/web-UI options are explicitly out of scope for this first
-  headless build per the user's answer above, but the GPIO/I2C enablement already in the base
-  `configuration.nix` leaves room for that later without a rebuild-from-scratch.
+  for a first cut; the guide's OLED/buttons/web-UI options are explicitly out of scope for this build per
+  the user's answer above, but the GPIO/I2C enablement already in the base `configuration.nix` leaves
+  room for that later without a rebuild-from-scratch.
 - Autostart: `services.mpd` is a systemd service already enabled by the module — no separate autostart
   wiring needed (simpler than the guide's manual systemd unit for `mpd`/`cvlc`).
-- Does **not** set `services.mpd.extraConfig`'s `audio_output` itself — that's left to whichever of the
-  two output modules below is imported alongside it, so the core stays reusable across both.
+- Does **not** set `services.mpd.extraConfig`'s `audio_output` itself — that's `bluetooth.nix`'s job, kept
+  separate so the MPD core doesn't need to know or care how audio actually gets out.
 
-## `example/radio/usb-audio.nix` — workload 1 (USB DAC)
-
-- `services.mpd.extraConfig`'s `audio_output { type "alsa"; device "hw:1,0"; }` pointing at the USB audio
-  adapter (device index depends on what's plugged in — confirm with `aplay -l` on first boot rather than
-  hardcoding blindly). No onboard analog audio out on this board (see Context).
-- Add the `mpd` service user/group to `audio`; `hardware.pulseaudio.enable` not needed since MPD talks to
-  ALSA directly, matching the guide's basic (non-Bluetooth) setup.
-
-## `example/radio/bluetooth-speaker.nix` — workload 2 (onboard Bluetooth → BT speaker)
+## `example/radio/bluetooth.nix` — onboard Bluetooth → BT speaker
 
 - The Pi Zero W's BCM43438 combo chip exposes Bluetooth over UART, same as the Pi 3 — reuse the NixOS
   wiki's documented `btattach` recipe (`systemd.services.btattach`, `ExecStart = "${pkgs.bluez}/bin/btattach -B /dev/ttyAMA0 -P bcm -S 3000000"`,
