@@ -84,8 +84,14 @@ ignore conventions near the existing `.env` entries — follow that pattern).
 
 ## `hosts/rpi-zero-w/configuration.nix`
 
-- `boot.loader.raspberryPi.enable = true; boot.loader.raspberryPi.version = 0;` (matches Pi Zero/Pi1
-  firmware boot, not U-Boot). `boot.loader.grub.enable = false;`
+- `boot.loader.grub.enable = false; boot.loader.generic-extlinux-compatible.enable = true;` — the
+  non-deprecated path (see Context above), *not* `boot.loader.raspberryPi`.
+- Firmware partition populated by `sdImage.populateFirmwareCommands`, modeled on nixpkgs'
+  `sd-image-aarch64.nix` but retargeted at armv6l: copy `bootcode.bin`/`fixup*.dat`/`start*.elf` from
+  `pkgs.raspberrypifw`, copy `${pkgs.ubootRaspberryPiZero}/u-boot.bin` in as `kernel.img`, and write a
+  `config.txt` with `kernel=kernel.img` (no `arm_64bit=1` — this board is 32-bit) plus `enable_uart=1`.
+  U-Boot then picks up the `extlinux.conf` that `generic-extlinux-compatible` writes to the NixOS
+  partition, same mechanism as the 64-bit Pis just for this board's U-Boot target.
 - `boot.kernelPackages = pkgs.linuxPackages_rpi0;` — verify this attribute still exists in the pinned
   nixpkgs revision when implementing; fall back to whatever the current rpi0-target kernel package is
   named if renamed.
