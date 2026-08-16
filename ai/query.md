@@ -73,3 +73,6 @@
 > </details>
 >
 
+❯ You can also reference @ai/references/https/nixos.wiki/wiki/NixOS_on_ARM/Raspberry_Pi/_.md and https://github.com/cyber-murmel/nixos-rpi-zero-w (4 years old though) if that helps.
+The first implementation would be an zero to run a web radion player, followigh roughly @ai/references/https/zbotic.in/raspberry-pi-internet-radio-build-an-always-on-music-player/_.md
+
