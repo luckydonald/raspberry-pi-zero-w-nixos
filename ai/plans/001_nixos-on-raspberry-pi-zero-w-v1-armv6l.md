@@ -100,12 +100,12 @@ ignore conventions near the existing `.env` entries — follow that pattern).
 
 - Single input: `nixpkgs` (pin to `nixos-unstable` or a recent stable release — recommend unstable since
   armv6l fixes land there first and this is already an unsupported-tier build).
-- Part 1 output — this is the plan's actual deliverable:
+- Part 1 output — the reusable base image:
   `nixosConfigurations.rpi-zero-w = nixpkgs.lib.nixosSystem { system = "x86_64-linux"; modules = [ ... hosts/rpi-zero-w/configuration.nix ]; }`
   with `nixpkgs.crossSystem.system = "armv6l-linux"` set inside a module, so the build host stays
   `x86_64-linux` (their main machine) while the produced system targets armv6l. This is "just the OS,
   boots and is SSH-reachable" — nothing app-specific.
-- Part 2 output — scaffolded alongside it, not the focus of this round's verification:
+- Part 2 output — the working radio appliance:
   `nixosConfigurations.rpi-zero-w-radio`, composing `hosts/rpi-zero-w/configuration.nix` +
   `example/radio/module.nix` + `example/radio/bluetooth.nix`.
 - Expose the SD image as a flake output so building either is one command, e.g.:
