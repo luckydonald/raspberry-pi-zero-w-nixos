@@ -287,3 +287,5 @@ nix build "path:.#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdIma
 
 ❯ it is set both on github and the local .env file (please don't read the password)
 
+❯ how do I get the `cachix` cli?
+
