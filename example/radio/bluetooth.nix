@@ -13,6 +13,23 @@ in
 {
   hardware.bluetooth.enable = true;
 
+  # Two cross-compile gaps in nixpkgs' bluez-alsa derivation, neither specific to this config:
+  # 1. `glib` is only in buildInputs (target/armv6l), so `configure` can't find `gdbus-codegen`,
+  #    which has to run on the build host, not the target — fixed by adding glib for the build
+  #    platform.
+  # 2. `systemdLibs` is listed in nativeBuildInputs instead of buildInputs, so the target-arch
+  #    systemd pkg-config file it needs to link against isn't actually visible to `configure`
+  #    when cross-compiling (`checking for systemd >= 200... no`). We don't need bluez-alsa's
+  #    own bundled systemd integration anyway — bluealsa is run via our own systemd unit below
+  #    — so disabling it sidesteps the broken check entirely rather than working around it.
+  nixpkgs.overlays = [
+    (final: prev: {
+      bluez-alsa = (prev.bluez-alsa.override { systemdSupport = false; }).overrideAttrs (old: {
+        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.buildPackages.glib ];
+      });
+    })
+  ];
+
   # The Pi Zero W's Bluetooth controller hangs off a UART, not USB — it needs to be attached
   # explicitly before bluetooth.service has anything to talk to. Recipe from the NixOS wiki's
   # Raspberry Pi page (originally documented for the Pi 3, same combo chip).

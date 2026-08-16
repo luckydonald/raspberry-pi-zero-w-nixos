@@ -15,6 +15,44 @@ in
   services.mpd.user = "mpd";
   services.mpd.group = "mpd";
 
+  # Trim MPD's feature set instead of building nixpkgs' default, which enables essentially
+  # everything on Linux — pipewire/jack/pulse outputs, WebDAV/NFS/SMB/optical-disc input,
+  # fluidsynth/game-music-emu/tracker-module decoders, API docs — none of which an internet
+  # radio appliance over ALSA/BlueALSA needs, and which multiplies cross-build time on this
+  # already-slow armv6l target for no benefit. This also sidesteps a real build failure: the
+  # default set's `ffmpeg` feature pulls in `x265` (a video codec — MPD is audio-only), and
+  # x265's nixpkgs derivation currently fails to apply one of its patches cleanly, unrelated to
+  # anything in this config. Kept generous on actual stream-format decoders (mp3/aac/ogg/opus/
+  # flac) since "whatever internet radio stream someone points this at" isn't predictable.
+  #
+  # `services.mpd` has no package option — the module hardcodes `pkgs.mpd` — so this is applied
+  # as an overlay instead. Scoped to this file/module, so it only affects the radio image, not
+  # the base image (which doesn't import this file at all).
+  nixpkgs.overlays = [
+    (final: prev: {
+      mpd = prev.mpd.override {
+        features = [
+          "curl" # HTTP(S) stream URLs — the whole point
+          "mpg123"
+          "mad"
+          "faad" # AAC/HE-AAC — common for internet radio
+          "flac"
+          "vorbis"
+          "opus"
+          "id3tag"
+          "alsa" # our only output path (direct, or via BlueALSA)
+          "soxr" # resampling quality
+          "sqlite"
+          "icu"
+          "expat" # playlist format parsing
+          "dbus"
+          "zeroconf"
+          "systemd"
+        ];
+      };
+    })
+  ];
+
   environment.systemPackages = [ pkgs.mpc ];
 
   # `services.mpd` only starts the daemon — it doesn't queue or play anything by itself.
