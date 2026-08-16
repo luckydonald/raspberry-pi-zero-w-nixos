@@ -114,3 +114,5 @@ Both need to be completed.
 > </details>
 >
 
+❯ How can I install nix executable?
+
