@@ -45,20 +45,23 @@ built specifically for this exact device, though 4 years old, which matters for 
 ## Decisions locked in with the user
 
 - **Build strategy:** true cross-compilation (`nixpkgs.crossSystem`), not QEMU/binfmt emulation.
-- **First workload:** a headless always-on internet radio player (MPD-based, following the shape of the
+- **Part 1 (this plan's actual scope):** just get NixOS booting on the original Pi Zero W hardware —
+  boot loader, kernel, firmware, WiFi, SSH. No radio, no audio, nothing app-specific. That's
+  `hosts/rpi-zero-w/configuration.nix` and is the thing this plan builds and verifies end-to-end.
+  GPIO/I2C/SPI interfaces are enabled up front (via device tree overlays) even though nothing needs them
+  yet, so later projects (radio or otherwise) don't require a rebuild from scratch.
+- **Part 2 (follow-up project, scaffolded now but not the focus of verification):** a headless
+  always-on internet radio player (MPD-based, following the shape of the
   [zbotic guide](https://zbotic.in/blogs/raspberry-pi-internet-radio-build-an-always-on-music-player/)
   the user linked, but via NixOS's built-in `services.mpd` module instead of `apt install`/manual
-  `mpd.conf` editing), playing out over a **USB audio adapter** first.
-- **Second workload:** the same radio player, but output over the Pi Zero W's **onboard Bluetooth**
-  (BCM43438 combo chip) to a Bluetooth speaker instead of a wired USB DAC.
-- GPIO/I2C/SPI interfaces are enabled up front in the base config (via device tree overlays) even though
-  the radio doesn't need them, so a later display/buttons upgrade (the guide's "Option 2" build) doesn't
-  require a rebuild from scratch.
-- **Reusability:** the base NixOS image (boot/kernel/firmware/WiFi/SSH) must stay independent of the
-  radio project — the radio lives as a self-contained example under `example/radio/`, imported as an
-  optional extra module rather than baked into `hosts/rpi-zero-w/configuration.nix`. The user is
-  considering splitting this into its own repo later; keeping it in one repo for now is explicitly for
-  faster iteration/validation, but the module boundary should already make that future split easy (no
+  `mpd.conf` editing), outputting audio over the Pi Zero W's **onboard Bluetooth** (BCM43438 combo chip)
+  to a Bluetooth speaker — not a USB DAC, since the board's onboard radio already does WiFi *and*
+  Bluetooth and the user wants to use that directly.
+- **Reusability:** the base NixOS image (Part 1) must stay independent of the radio project (Part 2) —
+  the radio lives as a self-contained example under `example/radio/`, imported as an optional extra
+  module rather than baked into `hosts/rpi-zero-w/configuration.nix`. The user is considering splitting
+  this into its own repo later; keeping it in one repo for now is explicitly for faster
+  iteration/validation, but the module boundary should already make that future split easy (no
   radio-specific bits leaking into the base host config).
 - **Config style:** flake-based (user's first time with flakes, so the plan keeps the flake itself small
   and legible).
