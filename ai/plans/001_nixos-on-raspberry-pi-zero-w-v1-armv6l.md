@@ -115,6 +115,30 @@ ignore conventions near the existing `.env` entries — follow that pattern).
   impractical on a 512MB single-core board with no cache, so prefer adding packages to the image and
   rebuilding/reflashing over installing on-device.
 
+## `hosts/rpi-zero-w/radio.nix` — first workload (internet radio)
+
+Following the shape of the zbotic guide, but the NixOS-native way:
+
+- `services.mpd.enable = true;` with `services.mpd.musicDirectory`/`playlistDirectory` under
+  `/var/lib/mpd` (module-managed, no manual `apt install`/`/etc/mpd.conf` editing needed).
+- `services.mpd.network.listenAddress = "any";` so `mpc`/an MPD client can reach it from the LAN, mirror
+  of the guide's `bind_to_address "any"`.
+- ALSA output via `services.mpd.extraConfig`'s `audio_output { type "alsa"; device "hw:1,0"; }` pointing
+  at the USB audio adapter (device index depends on what's plugged in — confirm with `aplay -l` on first
+  boot rather than hardcoding blindly). No onboard analog audio out on this board (see Context).
+- `services.mpd.user`/group and add that user to `audio`; `hardware.pulseaudio.enable` not needed if
+  MPD talks to ALSA directly, matching the guide's basic (non-Bluetooth) setup.
+- Station playlists as `.m3u` files under the MPD playlist directory (declaratively written via
+  `environment.etc` or a `systemd.tmpfiles.rules` drop-in at activation, rather than the guide's
+  `sudo tee` at the shell) — ask the user for the actual station stream URLs they want when implementing,
+  the guide's BBC World Service example is just a placeholder.
+- Control: `pkgs.mpc-cli` in `environment.systemPackages` for `mpc play`/`mpc next` over SSH is enough
+  for a first cut; the guide's OLED/buttons/web-UI options are explicitly out of scope for this first
+  headless build per the user's answer above, but the GPIO/I2C enablement already in `configuration.nix`
+  leaves room for that later without a rebuild-from-scratch.
+- Autostart: `services.mpd` is a systemd service already enabled by the module — no separate autostart
+  wiring needed (simpler than the guide's manual systemd unit for `mpd`/`cvlc`).
+
 ## Build & flash
 
 1. `nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage` on the dev machine (expect a
