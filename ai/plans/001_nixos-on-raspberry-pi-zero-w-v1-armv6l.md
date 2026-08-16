@@ -157,3 +157,6 @@ Following the shape of the zbotic guide, but the NixOS-native way:
   without the real hardware.
 - If I2C/SPI don't appear as `/dev/i2c-*`/`/dev/spidev*` after boot, note it as a known follow-up rather
   than blocking on it, per the unresolved report in the community thread.
+- Confirm the actual radio playback signal: run `aplay -l` over SSH to find the real USB audio device
+  index, adjust `radio.nix`'s `audio_output` device if it doesn't match the placeholder `hw:1,0`, then
+  `mpc load <station>` / `mpc play` and confirm audio comes out of the attached speakers.
