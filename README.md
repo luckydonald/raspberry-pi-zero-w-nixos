@@ -76,14 +76,53 @@ with the placeholder `secrets.nix.example` values (CI never has the real, gitign
 `secrets.nix` at all) — meaning nothing from your real WiFi PSK or SSH keys can ever end up
 pushed to the cache, by construction, not by care taken in the workflow.
 
-To pull from the cache locally instead of rebuilding from source, add it as a substituter once:
+### Use the provided cache
+
+Add it as a substituter once, then `nix build` pulls from it instead of rebuilding from source
+wherever it can:
 
 ```sh
 nix run nixpkgs#cachix -- use luckydonald-rpi-zero-w
 ```
 
-Repo maintainers: the workflow needs a `CACHIX_AUTH_TOKEN` Actions secret (a write token from the
-Cachix dashboard) to push — add it under repo Settings → Secrets and variables → Actions.
+If that errors with `doesn't have permissions to configure binary caches`, your user isn't a Nix
+`trusted-user` yet (needed to add substituters) — fix once, then retry:
+
+```sh
+echo "trusted-users = root user" | sudo tee -a /etc/nix/nix.conf && sudo pkill nix-daemon
+```
+
+(`user` above is whatever your actual OS username is — the Nix daemon restarts itself under
+systemd, picking up the new setting.)
+
+### Set up your own cache instead (or in addition)
+
+If you're building your own fork/derivative of this repo and want your own warm cache:
+
+1. Sign up and create a cache at [app.cachix.org](https://app.cachix.org) (see the
+   [Cachix docs](https://docs.cachix.org) for the general concepts). Free tier is generous for a
+   personal cache like this one.
+2. Install the CLI and authenticate:
+   ```sh
+   nix profile install nixpkgs#cachix
+   cachix authtoken <your-token-from-the-cachix-dashboard>
+   ```
+3. **Point your cache at this one so you benefit from the already-built closure instead of
+   starting from zero:** in the Cachix dashboard, open your cache → *Settings* → **Upstream
+   caches**, and add `luckydonald-rpi-zero-w`. Cachix then falls through to it automatically for
+   any store path your own cache doesn't have yet, before your own CI has to build it.
+4. Add it as a local substituter the same way as above, with your own cache name:
+   ```sh
+   cachix use <your-cache-name>
+   ```
+5. To run the weekly warming workflow against your own cache: add a `CACHIX_AUTH_TOKEN` secret
+   (a write token from your Cachix dashboard) under your fork's repo Settings → Secrets and
+   variables → Actions, and change the `name:` field in
+   [`.github/workflows/nix-cache-warm.yml`](.github/workflows/nix-cache-warm.yml) from
+   `luckydonald-rpi-zero-w` to your own cache name.
+
+Repo maintainers of *this* repo: same step 5, but no `name:` change needed — the workflow already
+targets `luckydonald-rpi-zero-w`.
 
 ## Sources / credits
 
