@@ -76,9 +76,11 @@ whole `path:` vs bare `.#...` distinction (which existed *only* for this problem
   mpc clear && mpc add "$station_url" && mpc play
   ```
 - Contribute a `sdImage.populateFirmwareCommands` addition (this option should be mergeable
-  across modules — verify) writing a default `/boot/firmware/radio-station-url` file, pre-filled
-  with the current BBC World Service placeholder URL as a friendly working default, with a
-  comment noting it can be replaced with any stream URL.
+  across modules — verify) writing `/boot/firmware/radio-station-url`, pre-filled with the same
+  BBC World Service URL already used as the working example throughout this project
+  (`https://stream.live.vc.bbcmedia.co.uk/bbc_world_service`) — not a dummy placeholder. The
+  radio image should play something real out of the box; editing this file is for picking a
+  *different* station, not a required step to get any sound at all.
 
 ### `example/radio/bluetooth.nix`
 
