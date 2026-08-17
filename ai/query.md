@@ -317,3 +317,5 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -20" completed (ex
 
 ❯ The Readme shall also include the commands and links and resources needed to do it for yourself, or reuse the provided one. And instruct users to set mine in the _Upstream caches_ section of cachix.
 
+❯ /plan I want the resulting image as a github release file. Wait, does that even work with the `secrets.nix`? I kinda was thinking an `.env` which is read would be better for those passwords and such; but that would still not work for the public release?
+
