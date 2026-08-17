@@ -1,0 +1,53 @@
+name: Release images
+
+# Builds both sdImages and attaches them to a GitHub Release matching the pushed tag. Reuses the
+# same Cachix cache nix-cache-warm.yml keeps warm, so this mostly substitutes rather than
+# recompiles — as long as flake.lock hasn't drifted far from the last warm run.
+#
+# Neither image contains any personal data (WiFi/SSH/station/Bluetooth config all live on the
+# SD card's boot partition, read at runtime — see devices/rpi-zero-w/configuration.nix and
+# example/radio/), so these are safe to publish as-is.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: cachix/cachix-action@v15
+        with:
+          name: luckydonald-rpi-zero-w
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build base image
+        run: nix build ".#nixosConfigurations.rpi-zero-w.config.system.build.sdImage" -L -o result-base
+
+      - name: Build radio image
+        run: nix build ".#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdImage" -L -o result-radio
+
+      - name: Rename assets
+        # Both builds share the same default output filename (nixos-image-sd-card-*.img.zst) —
+        # would otherwise collide as two identically-named assets on the same release.
+        run: |
+          cp result-base/sd-image/*.img.zst "rpi-zero-w-${GITHUB_REF_NAME}.img.zst"
+          cp result-radio/sd-image/*.img.zst "rpi-zero-w-radio-${GITHUB_REF_NAME}.img.zst"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "rpi-zero-w-${GITHUB_REF_NAME}.img.zst" \
+            "rpi-zero-w-radio-${GITHUB_REF_NAME}.img.zst" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

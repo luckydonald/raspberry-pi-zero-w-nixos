@@ -4,13 +4,6 @@
 # enablement only. See ../../example/radio/ for a project built on top of this.
 { config, pkgs, lib, modulesPath, ... }:
 
-let
-  # Falls back to the placeholder example when secrets.nix (gitignored, real values) doesn't
-  # exist — e.g. on a fresh CI checkout, which never has it. CI only needs the config to
-  # *evaluate and build*, not to produce a bootable-for-real image, so placeholder WiFi/SSH
-  # values are fine there; a real deploy always has secrets.nix present locally and uses it.
-  secrets = import (if builtins.pathExists ./secrets.nix then ./secrets.nix else ./secrets.nix.example);
-in
 {
   # Target platform is set by flake.nix via `nixpkgs.crossSystem` (true cross-compilation from
   # an x86_64-linux build host), not here — this file stays agnostic about how it gets built.
@@ -57,6 +50,15 @@ in
   # into the image.
   sdImage.rootFilesystemCreator = ./make-ext4-fs-no-xattrs.nix;
 
+  # Every value here that's personal to a specific deployment (WiFi credentials, SSH keys, and
+  # — for the radio image, see example/radio/ — the station URL and Bluetooth speaker MAC) is
+  # deliberately NOT baked into this build. Nix bakes anything it reads at build time literally
+  # into the built system's /nix/store, which ships inside the image — safe for a device only
+  # you ever flash, but not for an image published as a GitHub Release. Instead, those values
+  # live in plain text files on this FAT firmware partition, read by the running system at
+  # *boot*, not by Nix at *build* time. The partition stays writable/mountable from any OS
+  # after flashing — the same trick Raspberry Pi OS itself uses for its well-known headless
+  # setup (dropping wpa_supplicant.conf/ssh/userconf.txt onto the boot partition pre-boot).
   sdImage.populateFirmwareCommands =
     let
       firmware = pkgs.raspberrypifw;
@@ -71,6 +73,29 @@ in
       cat > firmware/config.txt << 'EOF'
       kernel=kernel.img
       enable_uart=1
+      EOF
+
+      cat > firmware/wpa_supplicant.conf << 'EOF'
+      # Edit this file with your real WiFi network before first boot. It lives on this FAT
+      # partition, so you can edit it from any computer (Windows/Mac/Linux) with the SD card
+      # inserted, before it ever goes into the Pi. Re-flashing to a newer image resets this
+      # file back to these placeholders — back it up first if you're updating an existing device.
+      #
+      # country: your two-letter ISO 3166-1 country code (regulatory domain for WiFi channels).
+      country=US
+      ctrl_interface=DIR=/run/wpa_supplicant GROUP=netdev
+      update_config=1
+
+      network={
+          ssid="YOUR_WIFI_SSID"
+          psk="YOUR_WIFI_PASSWORD"
+      }
+      EOF
+
+      cat > firmware/authorized_keys << 'EOF'
+      # Paste your SSH public key(s) here, one per line (e.g. the contents of
+      # ~/.ssh/id_ed25519.pub), then boot or reboot the Pi. No rebuild needed: sshd reads this
+      # file directly from this partition on every login attempt.
       EOF
     '';
 
@@ -109,17 +134,30 @@ in
 
   # --- Networking -------------------------------------------------------
   #
-  # wpa_supplicant via networking.wireless: lighter than NetworkManager, and this is a single
-  # always-on WiFi headless box with nothing to switch between.
+  # NOT using NixOS's `networking.wireless.networks.<ssid>` here — that option needs the SSID as
+  # a Nix attribute name, which means it has to be known at *build* time no matter what, so it
+  # can't be deferred to the boot partition the way the PSK can. Running wpa_supplicant
+  # ourselves, pointed at a plain conf file on /boot/firmware, keeps both SSID and PSK entirely
+  # out of the build.
   networking.hostName = "rpi-zero-w";
-  networking.wireless.enable = true;
-  networking.wireless.networks.${secrets.wifi.ssid}.psk = secrets.wifi.psk;
+  systemd.services.wpa-supplicant-boot-partition = {
+    description = "wpa_supplicant using /boot/firmware/wpa_supplicant.conf";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "sys-subsystem-net-devices-wlan0.device" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.wpa_supplicant}/bin/wpa_supplicant -i wlan0 -c /boot/firmware/wpa_supplicant.conf";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+  };
 
   # --- SSH ----------------------------------------------------------------
   services.openssh.enable = true;
   services.openssh.settings.PasswordAuthentication = false;
   services.openssh.settings.PermitRootLogin = "prohibit-password";
-  users.users.root.openssh.authorizedKeys.keys = secrets.sshAuthorizedKeys;
+  # sshd reads this straight off the boot partition on every login attempt — a plain runtime
+  # file lookup, not something Nix reads at build time, so no key ever ends up in the store.
+  services.openssh.authorizedKeysFiles = [ "/boot/firmware/authorized_keys" ];
 
   # Keep the base image's package set minimal — anything not baked in has to build/fetch
   # on-device later, which is impractical on this board (512MB RAM, single core, no binary

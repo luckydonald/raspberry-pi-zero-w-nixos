@@ -2,10 +2,6 @@
 # behavior. Output-agnostic on purpose — see bluetooth.nix for how audio actually gets out.
 { config, pkgs, lib, ... }:
 
-let
-  # Change this to whatever stream you want the radio to play on boot.
-  stationUrl = "https://stream.live.vc.bbcmedia.co.uk/bbc_world_service";
-in
 {
   services.mpd.enable = true;
   services.mpd.settings.bind_to_address = "any";
@@ -55,6 +51,16 @@ in
 
   environment.systemPackages = [ pkgs.mpc ];
 
+  # Like the base image's WiFi/SSH values (see devices/rpi-zero-w/configuration.nix), the
+  # station URL is deliberately not a Nix-build-time value — a published image would otherwise
+  # be stuck playing whatever stream the maintainer happened to configure. It's read fresh from
+  # the boot partition every time this unit runs.
+  sdImage.populateFirmwareCommands = ''
+    cat > firmware/radio-station-url << 'EOF'
+    https://stream.live.vc.bbcmedia.co.uk/bbc_world_service
+    EOF
+  '';
+
   # `services.mpd` only starts the daemon — it doesn't queue or play anything by itself.
   # This is what makes it an actual "plug it in and it plays" radio instead of a player
   # waiting for someone to run `mpc play` over SSH.
@@ -73,8 +79,9 @@ in
       RestartSec = "5s";
       ExecStart = pkgs.writeShellScript "radio-autoplay" ''
         set -eu
+        station_url=$(cat /boot/firmware/radio-station-url)
         ${pkgs.mpc}/bin/mpc clear
-        ${pkgs.mpc}/bin/mpc add "${stationUrl}"
+        ${pkgs.mpc}/bin/mpc add "$station_url"
         ${pkgs.mpc}/bin/mpc play
       '';
     };

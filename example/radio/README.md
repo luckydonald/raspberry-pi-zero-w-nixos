@@ -25,23 +25,27 @@ swapped in for `bluetooth.nix` without touching it.
 
 ## Configuration
 
-Both values below are plain `let` bindings at the top of the respective file — edit them
-directly and rebuild:
+Like WiFi/SSH on the base image (see the root [README](../../README.md#first-boot-wifi--ssh)),
+neither of these is a Nix build-time value — a published image shouldn't be stuck playing one
+fixed station or trying to talk to one fixed speaker. Both live as plain text files on the SD
+card's `FIRMWARE` partition, editable from any computer, read fresh at every boot:
 
-- **Stream URL** — `stationUrl` in [`module.nix`](module.nix). Defaults to a placeholder BBC
-  World Service stream; change it to whatever station you actually want.
-- **Speaker MAC address** — `speakerMac` in [`bluetooth.nix`](bluetooth.nix). Only known after
-  you've paired the speaker once (see below).
+- **Stream URL** — `radio-station-url` on the `FIRMWARE` partition. Ships with a genuinely
+  working default (the same BBC World Service stream used throughout this project's docs), not
+  a placeholder — editing it is for picking a *different* station, not required to get sound.
+- **Speaker MAC address** — `bluetooth-speaker-mac` on the `FIRMWARE` partition. Ships with a
+  comment explaining the format; only known after you've paired your speaker once (see below).
 
 ## Build & flash
 
 ```sh
-nix build "path:.#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdImage"
+nix build .#nixosConfigurations.rpi-zero-w-radio.config.system.build.sdImage
 zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress
 ```
 
-Confirm the correct device before writing — see the root [README](../../README.md) for WiFi/SSH
-first-boot setup, which applies here too since this image includes the base device config.
+Confirm the correct device before writing — see the root [README](../../README.md) for the
+`FIRMWARE`-partition first-boot flow (WiFi/SSH), which applies here too since this image
+includes the base device config, plus the two radio-specific files above.
 
 ## Pairing the Bluetooth speaker (one-time, manual)
 
@@ -63,9 +67,9 @@ bluetoothctl
   exit
 ```
 
-Put that MAC address into `speakerMac` in `bluetooth.nix`, rebuild, and reflash (or
-`nixos-rebuild switch` from a checkout on the device itself, once it's reachable). From then on,
-every boot reconnects automatically.
+Write that MAC address into `bluetooth-speaker-mac` on the `FIRMWARE` partition (mount the SD
+card on any computer, same as the WiFi/SSH setup) and reboot the Pi. No rebuild needed — from
+then on, every boot reconnects automatically.
 
 ## Debugging
 

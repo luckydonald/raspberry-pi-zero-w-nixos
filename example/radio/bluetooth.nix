@@ -7,11 +7,25 @@
 { config, pkgs, lib, ... }:
 
 let
-  # Set this to the MAC address of your speaker after pairing it once (see README).
-  speakerMac = "AA:BB:CC:DD:EE:FF";
+  # bluetooth-speaker-mac ships with explanatory `#` comment lines above the actual value (see
+  # populateFirmwareCommands below) — strip comments/blank lines and take the last real line,
+  # rather than a bare `cat` that would swallow the comments into the "MAC" too.
+  readSpeakerMac = "grep -vE '^[[:space:]]*(#|$)' /boot/firmware/bluetooth-speaker-mac | tail -n1 | tr -d '[:space:]'";
 in
 {
   hardware.bluetooth.enable = true;
+
+  # Like WiFi/SSH/the station URL, the speaker's MAC is personal-device data that doesn't belong
+  # baked into a publishable image — read from the boot partition at runtime instead. Ships a
+  # placeholder; the actual value gets written there after pairing (see README).
+  sdImage.populateFirmwareCommands = ''
+    cat > firmware/bluetooth-speaker-mac << 'EOF'
+    # After pairing your speaker once (see example/radio/README.md — `bluetoothctl pair`/`trust`),
+    # replace the line below with its MAC address, e.g. AA:BB:CC:DD:EE:FF (as shown by
+    # `bluetoothctl devices` or `bluetoothctl info <mac>`), then boot or reboot the Pi.
+    AA:BB:CC:DD:EE:FF
+    EOF
+  '';
 
   # Two cross-compile gaps in nixpkgs' bluez-alsa derivation, neither specific to this config:
   # 1. `glib` is only in buildInputs (target/armv6l), so `configure` can't find `gdbus-codegen`,
@@ -72,7 +86,41 @@ in
       # retry rather than failing once.
       Restart = "on-failure";
       RestartSec = "5s";
-      ExecStart = "${pkgs.bluez}/bin/bluetoothctl connect ${speakerMac}";
+      ExecStart = pkgs.writeShellScript "bluetooth-connect" ''
+        set -eu
+        mac=$(${readSpeakerMac})
+        ${pkgs.bluez}/bin/bluetoothctl connect "$mac"
+      '';
+    };
+  };
+
+  # MPD's `audio_output` is Nix-evaluated (baked at build time, same as everything else here) —
+  # there's no runtime-templating mechanism for it like the wireless module's environmentFile.
+  # So MPD gets a fixed, generic ALSA device name ("btspeaker") instead of the real MAC, and a
+  # separate unit resolves that name to the actual paired speaker via /etc/asound.conf, written
+  # fresh at every boot from the boot partition. This keeps MPD's own (published, public) config
+  # free of personal data while still routing audio to the right device at runtime.
+  systemd.services.bluetooth-asound-config = {
+    description = "Write /etc/asound.conf pointing \"btspeaker\" at the configured Bluetooth speaker";
+    before = [ "mpd.service" "bluetooth-connect.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "bluetooth-asound-config" ''
+        set -eu
+        mac=$(${readSpeakerMac})
+        cat > /etc/asound.conf << EOF
+        pcm.btspeaker {
+          type plug
+          slave.pcm {
+            type bluealsa
+            device "$mac"
+            profile "a2dp"
+          }
+        }
+        EOF
+      '';
     };
   };
 
@@ -80,7 +128,7 @@ in
     {
       type = "alsa";
       name = "Bluetooth Speaker";
-      device = "bluealsa:DEV=${speakerMac},PROFILE=a2dp";
+      device = "btspeaker";
     }
   ];
 }

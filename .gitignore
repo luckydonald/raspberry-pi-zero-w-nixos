@@ -974,6 +974,10 @@ coverage/
 
 
 # automatically added unversioned files:
-devices/rpi-zero-w/secrets.nix
 result
 result-*
+
+# No longer read by anything (see devices/rpi-zero-w/configuration.nix — WiFi/SSH now come from
+# the SD card's boot partition at runtime instead) — kept ignored anyway as a safety net for the
+# real secrets this file may still contain locally, in case it hasn't been deleted yet.
+devices/rpi-zero-w/secrets.nix

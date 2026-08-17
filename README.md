@@ -26,41 +26,54 @@ current `generic-extlinux-compatible` + U-Boot replacement.
   self-contained on purpose (it's a candidate for splitting into its own repo later); see its
   own [README](example/radio/README.md) for details.
 
-## First boot: WiFi & SSH
-
-Before building anything, copy the secrets template and fill in real values — this file is
-gitignored and never committed:
-
-```sh
-cp devices/rpi-zero-w/secrets.nix.example devices/rpi-zero-w/secrets.nix
-$EDITOR devices/rpi-zero-w/secrets.nix   # WiFi SSID/PSK, your SSH public key(s)
-```
-
-A plain gitignored `.nix` file (rather than sops-nix/agenix) is a deliberate choice for this
-personal/single-device repo — nothing sensitive touches git, and it's still just a one-line
-`import` in `configuration.nix`, no extra tooling needed.
-
 ## Build & flash the base image
 
 ```sh
-nix build "path:.#nixosConfigurations.rpi-zero-w.config.system.build.sdImage"
+nix build .#nixosConfigurations.rpi-zero-w.config.system.build.sdImage
 zstd -dcf result/sd-image/*.img.zst | sudo dd of=/dev/sdX bs=64k status=progress
 ```
 
-The `path:` prefix matters: Nix flakes only see git-*tracked* files by default, and
-`secrets.nix` is deliberately gitignored (see above) — `path:` reads the whole directory as-is
-instead, so your real WiFi/SSH values actually make it into the build. Plain `nix build .#...`
-(no `path:`) silently falls back to the placeholder values in `secrets.nix.example` instead —
-useful for CI (see below), not what you want for a real image.
+Double-check `/dev/sdX` is actually the SD card before writing.
 
-Double-check `/dev/sdX` is actually the SD card before writing. Boot the Pi, wait for it to join
-WiFi, find its address (router DHCP lease list, or `avahi`/mDNS if you have that set up), and:
+## First boot: WiFi & SSH
+
+This build contains **no personal data at all** — no WiFi password, no SSH key, nothing tied to
+you. That's deliberate: it's the same image whether you're flashing it for yourself or it's a
+published [Release](#releases) someone else downloaded. Nix bakes anything it reads at build
+time straight into the image, so instead these four values live as plain text files on the SD
+card's `FIRMWARE` partition — the small FAT32 partition, separate from the main Linux one — read
+by the running system at *boot*, not by Nix at *build* time. That partition mounts as an
+ordinary drive on Windows/Mac/Linux, so after flashing:
+
+1. Re-insert the SD card into your computer (or just don't eject it yet) and open the
+   `FIRMWARE` partition.
+2. Edit **`wpa_supplicant.conf`** with your real WiFi SSID and password.
+3. Paste your SSH public key(s) (e.g. the contents of `~/.ssh/id_ed25519.pub`) into
+   **`authorized_keys`**, one per line.
+4. Eject, put the card in the Pi, and power it on.
+
+This is the same convention Raspberry Pi OS itself uses for headless setup (dropping
+`wpa_supplicant.conf`/`ssh` onto the boot partition pre-boot), so it may already be familiar.
+
+Find the Pi's address once it's joined WiFi (router DHCP lease list, or `avahi`/mDNS if you have
+that set up), then:
 
 ```sh
 ssh root@rpi-zero-w
 ```
 
+**Re-flashing note:** writing a newer image resets this partition back to placeholder defaults —
+back up your edited `wpa_supplicant.conf`/`authorized_keys` (and, for the radio image,
+`radio-station-url`/`bluetooth-speaker-mac`) before reflashing an already-configured device.
+
 For the radio build instead, see [`example/radio/README.md`](example/radio/README.md).
+
+## Releases
+
+Tagged versions (`vX.Y.Z`) get built and published automatically by
+[`.github/workflows/release.yml`](.github/workflows/release.yml) — grab a prebuilt
+`rpi-zero-w-vX.Y.Z.img.zst` or `rpi-zero-w-radio-vX.Y.Z.img.zst` from the
+[Releases page](../../releases) instead of building locally if you just want to flash and go.
 
 ## Binary cache
 
@@ -70,11 +83,6 @@ cross-compiles both `nixosConfigurations` weekly (and on manual trigger) and pus
 path it builds to a personal [Cachix](https://cachix.org) cache, `luckydonald-rpi-zero-w`, as
 soon as each one finishes — so a run that hits GitHub's job timeout still leaves useful progress
 behind for the next one to build on.
-
-That workflow deliberately runs `nix build .#...` **without** `path:`, so it only ever evaluates
-with the placeholder `secrets.nix.example` values (CI never has the real, gitignored
-`secrets.nix` at all) — meaning nothing from your real WiFi PSK or SSH keys can ever end up
-pushed to the cache, by construction, not by care taken in the workflow.
 
 ### Use the provided cache
 
