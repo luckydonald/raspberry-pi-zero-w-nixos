@@ -319,3 +319,41 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -20" completed (ex
 
 ❯ /plan I want the resulting image as a github release file. Wait, does that even work with the `secrets.nix`? I kinda was thinking an `.env` which is read would be better for those passwords and such; but that would still not work for the public release?
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Move WiFi/SSH secrets entirely to the FAT boot partition (Raspberry-Pi-OS-style), making the published image itself contain zero personal data?
+>> 2. SSH keys aren't secret (public keys are meant to be public) — keep them baked via secrets.nix, or also move to the boot partition for full consistency/no personal data at all in the image?
+>> 3. How should the GitHub Release get triggered/built?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Secrets redesign** (1/3) <kbd>Single Select</kbd><br>
+>> Move WiFi/SSH secrets entirely to the FAT boot partition (Raspberry-Pi-OS-style), making the published image itself contain zero personal data?
+> - [x] 1\. Yes, full redesign (Recommended)
+>   - _wpa_supplicant.conf and authorized_keys live on /boot/firmware, edited post-flash. secrets.nix and the path:/bare build distinction go away entirely — one build artifact works for everyone._
+> - [ ] 2\. Keep secrets.nix, don't publish releases
+>   - _Simpler, no redesign, but drops the actual ask (a public GitHub Release image isn't possible this way without shipping a personal image or an unusable placeholder one)._
+> - [ ] 3\. _Type something._
+>
+>> **SSH keys** (2/3) <kbd>Single Select</kbd><br>
+>> SSH keys aren't secret (public keys are meant to be public) — keep them baked via secrets.nix, or also move to the boot partition for full consistency/no personal data at all in the image?
+> - [x] 1\. Also move to boot partition (Recommended)
+>   - _AuthorizedKeysFile points at /boot/firmware/authorized_keys — fully consistent with the WiFi approach, and nobody has to think about whether their pubkey being public is fine with them._
+> - [ ] 2\. Keep baked in secrets.nix
+>   - _Simpler for your own personal build, but then the release image ships with a real path lookup expecting a key it'll never find unless you also handle it — and the public/private image split doesn't fully collapse._
+> - [ ] 3\. _Type something._
+>
+>> **Release trigger** (3/3) <kbd>Single Select</kbd><br>
+>> How should the GitHub Release get triggered/built?
+> - [x] 1\. On version tag push, e.g. v1.0.0 (Recommended)
+>   - _Standard release flow — push a tag, a workflow builds both images (pulling from the now-warm Cachix cache) and attaches them as release assets._
+> - [ ] 2\. Manual dispatch only
+>   - _You trigger a release build by hand from the Actions tab whenever you want one, no tag convention needed._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
