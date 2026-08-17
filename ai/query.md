@@ -377,3 +377,5 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -20" completed (ex
 > </details>
 >
 
+❯ Obviously the radio config files should be created with good looking defaults, too. The bbc one mentioned earlier (see ai/query.md) should suffice as working example.
+
