@@ -415,3 +415,6 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -10" completed (ex
 
 ❯ do the same for the radio README.md
 
+❯ Conversation compacted <kbd>manual</kbd>:
+> - [Result (`35335` chars, `34.6 KB`)](output/compact/001.b43b09f8-e12c-4d92-af7c-86703a4fb22e/result.md)
+
