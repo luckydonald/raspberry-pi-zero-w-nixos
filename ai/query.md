@@ -411,3 +411,5 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -10" completed (ex
 > - [Answer (`789` chars, `789 B`)](output/agents/026.bq2irxhh3/result.md)
 > - [Raw log (`789` chars, `789 B`)](/tmp/claude-1000/-home-user-git-luckydonald-raspberry-pi-zero-w-nixos/7eed7de5-a2ef-46ee-a55d-58bf52f8617c/tasks/bq2irxhh3.output)
 
+❯ Reformat the `README.md` to not have aberitary line length linebreaks. You can roughly 140 characters, but may only break at the end of sentences, or if desperate also commas. Otherwise rather have a longer line than to split it weirdly mid-sentence.
+
