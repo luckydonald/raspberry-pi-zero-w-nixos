@@ -313,3 +313,5 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -20" completed (ex
 > - [Answer (`1706` chars, `1.67 KB`)](output/agents/023.b1royjw07/result.md)
 > - [Raw log (`1706` chars, `1.67 KB`)](/tmp/claude-1000/-home-user-git-luckydonald-raspberry-pi-zero-w-nixos/7eed7de5-a2ef-46ee-a55d-58bf52f8617c/tasks/b1royjw07.output)
 
+❯ document your learnings; and the required commands
+
