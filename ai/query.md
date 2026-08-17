@@ -413,3 +413,5 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -10" completed (ex
 
 ❯ Reformat the `README.md` to not have aberitary line length linebreaks. You can roughly 140 characters, but may only break at the end of sentences, or if desperate also commas. Otherwise rather have a longer line than to split it weirdly mid-sentence.
 
+❯ do the same for the radio README.md
+
