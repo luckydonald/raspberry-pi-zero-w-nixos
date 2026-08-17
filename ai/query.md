@@ -315,3 +315,5 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -20" completed (ex
 
 ❯ document your learnings; and the required commands
 
+❯ The Readme shall also include the commands and links and resources needed to do it for yourself, or reuse the provided one. And instruct users to set mine in the _Upstream caches_ section of cachix.
+
