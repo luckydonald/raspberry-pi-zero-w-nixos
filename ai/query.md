@@ -357,3 +357,23 @@ cachix push luckydonald-rpi-zero-w ./result-radio 2>&1 | tail -20" completed (ex
 > </details>
 >
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Should the Bluetooth speaker's MAC address also move to a runtime file on the boot partition, for the same reason (a public release image with the placeholder MAC baked in won't connect to anyone's real speaker)?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Bluetooth MAC** (1/1) <kbd>Single Select</kbd><br>
+>> Should the Bluetooth speaker's MAC address also move to a runtime file on the boot partition, for the same reason (a public release image with the placeholder MAC baked in won't connect to anyone's real speaker)?
+> - [x] 1\. Yes, same treatment (Recommended)
+>   - _/boot/firmware/bluetooth-speaker-mac, read at runtime by bluetooth-connect.service and the mpd audio_output. Makes the radio image fully generic/publishable, consistent with WiFi/SSH/station URL._
+> - [ ] 2\. Leave it build-time in bluetooth.nix
+>   - _Simpler, but the public radio release then never plays audio out of the box — every downloader would need to fork and rebuild just to set their speaker's MAC._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
