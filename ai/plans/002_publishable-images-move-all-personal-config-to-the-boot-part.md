@@ -28,6 +28,15 @@ flashing rather than before building. This also means `devices/rpi-zero-w/secret
 whole `path:` vs bare `.#...` distinction (which existed *only* for this problem — see
 `project_flake-eval-gitignored-secrets` memory) become unnecessary and should be removed.
 
+**Template quality bar:** these four boot-partition files are the first thing anyone flashing
+this image actually opens and edits, so each should be a real, valid, well-commented example —
+not a throwaway stub. `radio-station-url` ships a genuinely working station (see below) rather
+than a placeholder that needs replacing just to get any sound; `wpa_supplicant.conf` should be a
+syntactically complete, correctly-indented example block (country code included) someone can
+edit in place with zero guesswork; `authorized_keys`/`bluetooth-speaker-mac` can't ship a working
+default (inherently personal/paired-device data), but their comments should say exactly what
+format is expected and where to get the value (e.g. `bluetoothctl` output).
+
 ## File-by-file changes
 
 ### `devices/rpi-zero-w/configuration.nix`
